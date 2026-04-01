@@ -1,0 +1,27 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "immich": {
+    "baseUrl": "http://192.168.1.x:2283",
+    "apiKey": "your-immich-api-key",
+    "albumId": "uuid-of-shared-album",
+    "slideshowIntervalSeconds": 15
+  },
+  "homeAssistant": {
+    "baseUrl": "http://homeassistant.local:8123",
+    "token": "your-long-lived-access-token",
+    "weatherEntity": "weather.home",
+    "cameraEntity": "camera.reolink_front_door",
+    "cameraTriggerEntities": [
+      "binary_sensor.reolink_front_door_visitor",
+      "binary_sensor.reolink_front_door_person"
+    ],
+    "cameraAutoHideSeconds": 30,
+    "mediaPlayerEntity": "media_player.kitchen_speaker"
+  },
+  "display": {
+    "clockFormat24h": false,
+    "temperatureUnit": "F"
+  }
+}

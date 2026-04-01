@@ -1,0 +1,15 @@
+[Unit]
+Description=Picture Frame Web Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/pictureframe/server.js
+WorkingDirectory=/opt/pictureframe
+Restart=always
+RestartSec=5
+User=pi
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

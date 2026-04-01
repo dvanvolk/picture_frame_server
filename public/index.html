@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Picture Frame</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Slideshow: two images for crossfade -->
+  <div id="slideshow">
+    <img id="slide-a" class="slide" alt="">
+    <img id="slide-b" class="slide" alt="">
+    <div id="slideshow-error">Unable to load photos</div>
+  </div>
+
+  <!-- Bottom info bar: clock + weather -->
+  <div id="info-bar">
+    <div id="clock">--:--</div>
+    <div id="weather">
+      <span id="weather-temp">--</span>
+      <span id="weather-condition"></span>
+    </div>
+  </div>
+
+  <!-- Camera overlay: shown when doorbell triggers -->
+  <div id="camera-overlay" class="hidden">
+    <div id="camera-label">Front Door</div>
+    <img id="camera-img" alt="Front door camera">
+    <button id="camera-dismiss" aria-label="Dismiss camera">&#x2715;</button>
+  </div>
+
+  <!-- Music overlay: shown when media player is playing -->
+  <div id="music-overlay" class="hidden">
+    <div id="music-icon">&#9835;</div>
+    <div id="music-info">
+      <div id="music-title"></div>
+      <div id="music-artist"></div>
+    </div>
+  </div>
+
+  <!-- HA token injected by server — never commit a real token here -->
+  <script>window.__HA_TOKEN__ = '__HA_TOKEN__';</script>
+  <script src="app.js"></script>
+</body>
+</html>

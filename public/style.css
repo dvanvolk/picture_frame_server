@@ -1,0 +1,223 @@
+/* ============================================================
+   Reset & base
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: 'Roboto', sans-serif;
+  cursor: none;
+}
+
+/* ============================================================
+   Slideshow
+   ============================================================ */
+
+#slideshow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.slide.visible {
+  opacity: 1;
+}
+
+#slideshow-error {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.4);
+  font-size: 32px;
+  font-weight: 300;
+}
+
+#slideshow-error.visible {
+  display: flex;
+}
+
+/* ============================================================
+   Bottom info bar
+   ============================================================ */
+
+#info-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  height: 130px;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.0) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px 16px;
+}
+
+#clock {
+  font-size: 96px;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: -2px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#weather {
+  text-align: right;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  line-height: 1.1;
+}
+
+#weather-temp {
+  display: block;
+  font-size: 80px;
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+#weather-condition {
+  display: block;
+  font-size: 32px;
+  font-weight: 300;
+  opacity: 0.85;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Camera overlay
+   ============================================================ */
+
+#camera-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+#camera-overlay.hidden {
+  display: none;
+}
+
+#camera-label {
+  color: #fff;
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+#camera-img {
+  max-width: 82vw;
+  max-height: 72vh;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  object-fit: contain;
+  background: #111;
+}
+
+#camera-dismiss {
+  position: fixed;
+  top: 28px;
+  right: 36px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 36px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+#camera-dismiss:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* ============================================================
+   Music overlay
+   ============================================================ */
+
+#music-overlay {
+  position: fixed;
+  bottom: 148px; /* sits just above the info bar */
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 60px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.0) 100%);
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+#music-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#music-icon {
+  font-size: 48px;
+  color: #fff;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+#music-info {
+  overflow: hidden;
+}
+
+#music-title {
+  font-size: 38px;
+  font-weight: 400;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+}
+
+#music-artist {
+  font-size: 28px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+}
