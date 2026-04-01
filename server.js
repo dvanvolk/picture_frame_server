@@ -25,16 +25,19 @@ function loadConfig() {
     process.exit(1);
   }
 
+  var immich = config.immich || {};
+  var ha = config.homeAssistant || {};
+
   const required = [
-    ['immich.baseUrl', config.immich?.baseUrl],
-    ['immich.apiKey', config.immich?.apiKey],
-    ['immich.albumId', config.immich?.albumId],
-    ['homeAssistant.baseUrl', config.homeAssistant?.baseUrl],
-    ['homeAssistant.token', config.homeAssistant?.token],
-    ['homeAssistant.weatherEntity', config.homeAssistant?.weatherEntity],
-    ['homeAssistant.cameraEntity', config.homeAssistant?.cameraEntity],
-    ['homeAssistant.cameraTriggerEntities', config.homeAssistant?.cameraTriggerEntities],
-    ['homeAssistant.mediaPlayerEntity', config.homeAssistant?.mediaPlayerEntity],
+    ['immich.baseUrl', immich.baseUrl],
+    ['immich.apiKey', immich.apiKey],
+    ['immich.albumId', immich.albumId],
+    ['homeAssistant.baseUrl', ha.baseUrl],
+    ['homeAssistant.token', ha.token],
+    ['homeAssistant.weatherEntity', ha.weatherEntity],
+    ['homeAssistant.cameraEntity', ha.cameraEntity],
+    ['homeAssistant.cameraTriggerEntities', ha.cameraTriggerEntities],
+    ['homeAssistant.mediaPlayerEntity', ha.mediaPlayerEntity],
   ];
 
   const missing = required.filter(([, val]) => !val).map(([key]) => key);
@@ -49,7 +52,7 @@ function loadConfig() {
   config.immich.slideshowIntervalSeconds = config.immich.slideshowIntervalSeconds || 15;
   config.homeAssistant.cameraAutoHideSeconds = config.homeAssistant.cameraAutoHideSeconds || 30;
   config.display = config.display || {};
-  config.display.clockFormat24h = config.display.clockFormat24h ?? false;
+  config.display.clockFormat24h = config.display.clockFormat24h !== undefined ? config.display.clockFormat24h : false;
   config.display.temperatureUnit = config.display.temperatureUnit || 'F';
 
   return config;
@@ -125,9 +128,9 @@ app.get('/api/weather', async (req, res) => {
     const data = await response.json();
     res.json({
       condition: data.state,
-      temperature: data.attributes?.temperature ?? null,
+      temperature: (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null,
       unit: config.display.temperatureUnit === 'F' ? '°F' : '°C',
-      humidity: data.attributes?.humidity ?? null,
+      humidity: (data.attributes && data.attributes.humidity !== undefined) ? data.attributes.humidity : null,
     });
   } catch (err) {
     console.error('Weather fetch error:', err.message);
