@@ -99,30 +99,37 @@ function shuffle(arr) {
 }
 
 async function fetchAlbum() {
-  const url = `${CFG.immich.baseUrl}/api/albums/${CFG.immich.albumId}`;
   try {
-    const res = await fetch(url, {
-      headers: { 'x-api-key': CFG.immich.apiKey },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch('/api/immich/album');
     const data = await res.json();
-    const images = (data.assets || []).filter(a => a.type === 'IMAGE');
-    if (images.length === 0) throw new Error('No images in album');
-    assets = shuffle(images);
+    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    if (data.assets.length === 0) throw new Error('No images found in album');
+    assets = shuffle(data.assets);
     assetIndex = 0;
-    document.getElementById('slideshow-error').classList.remove('visible');
+    showSlideshowError(null);
     return true;
   } catch (err) {
     console.warn('Immich album fetch failed:', err.message);
     if (assets.length === 0) {
-      document.getElementById('slideshow-error').classList.add('visible');
+      showSlideshowError('Unable to load photos: ' + err.message);
     }
     return false;
   }
 }
 
+function showSlideshowError(msg) {
+  var el = document.getElementById('slideshow-error');
+  if (msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+  } else {
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+}
+
 function thumbnailUrl(assetId) {
-  return `${CFG.immich.baseUrl}/api/assets/${assetId}/thumbnail?size=preview`;
+  return CFG.immich.baseUrl + '/api/assets/' + assetId + '/thumbnail?size=preview&apiKey=' + CFG.immich.apiKey;
 }
 
 function nextSlide() {

@@ -139,6 +139,31 @@ app.get('/api/weather', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/immich/album — proxied Immich album asset list
+// ---------------------------------------------------------------------------
+
+app.get('/api/immich/album', async (req, res) => {
+  const url = `${config.immich.baseUrl}/api/albums/${config.immich.albumId}`;
+  try {
+    const response = await fetch(url, {
+      headers: { 'x-api-key': config.immich.apiKey },
+      timeout: 15000,
+    });
+    if (!response.ok) {
+      console.error('Immich album fetch failed: HTTP', response.status, url);
+      return res.status(502).json({ error: `Immich returned ${response.status}` });
+    }
+    const data = await response.json();
+    const images = (data.assets || []).filter(function(a) { return a.type === 'IMAGE'; });
+    console.log('Immich album loaded:', images.length, 'images');
+    res.json({ assets: images });
+  } catch (err) {
+    console.error('Immich album fetch error:', err.message);
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/camera-snapshot — proxied HA camera image
 // ---------------------------------------------------------------------------
 
