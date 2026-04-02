@@ -189,6 +189,9 @@ function cameraOverlayActive() {
 }
 
 function showCameraOverlay() {
+  const img = document.getElementById('camera-img');
+  img.removeAttribute('src');
+  img.style.visibility = 'hidden';
   document.getElementById('camera-overlay').classList.remove('hidden');
   refreshCameraSnapshot();
   resetCameraHideTimer();
@@ -208,7 +211,7 @@ function refreshCameraSnapshot() {
   const newSrc = `/api/camera-snapshot?t=${ts}`;
 
   const tmp = new Image();
-  tmp.onload = () => { img.src = tmp.src; };
+  tmp.onload = () => { img.src = tmp.src; img.style.visibility = 'visible'; };
   // On error: keep last successful image (don't update src)
   tmp.src = newSrc;
 
