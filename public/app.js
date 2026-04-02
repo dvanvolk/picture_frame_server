@@ -17,15 +17,20 @@ async function loadConfig() {
 
 function startClock() {
   const el = document.getElementById('clock');
+  const dateEl = document.getElementById('date');
 
   function tick() {
     const now = new Date();
-    const opts = {
+    el.textContent = now.toLocaleTimeString([], {
       hour: 'numeric',
       minute: '2-digit',
       hour12: !CFG.display.clockFormat24h,
-    };
-    el.textContent = now.toLocaleTimeString([], opts);
+    });
+    dateEl.textContent = now.toLocaleDateString([], {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 
   tick();
