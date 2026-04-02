@@ -82,7 +82,7 @@ app.get('/', (req, res) => {
     return res.status(500).send('index.html not found');
   }
   // Replace the placeholder so the token never lives in a static file
-  html = html.replace('__HA_TOKEN__', config.homeAssistant.token);
+  html = html.replace('__HA_TOKEN__', config.homeAssistant.token.trim());
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 });
