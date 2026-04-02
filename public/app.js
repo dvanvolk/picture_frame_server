@@ -98,7 +98,11 @@ function shuffle(arr) {
   return arr;
 }
 
+let albumFetchInProgress = false;
+
 async function fetchAlbum() {
+  if (albumFetchInProgress) return false;
+  albumFetchInProgress = true;
   try {
     const res = await fetch('/api/immich/album');
     const data = await res.json();
@@ -107,12 +111,14 @@ async function fetchAlbum() {
     assets = shuffle(data.assets);
     assetIndex = 0;
     showSlideshowError(null);
+    albumFetchInProgress = false;
     return true;
   } catch (err) {
     console.warn('Immich album fetch failed:', err.message);
     if (assets.length === 0) {
       showSlideshowError('Unable to load photos: ' + err.message);
     }
+    albumFetchInProgress = false;
     return false;
   }
 }
@@ -136,11 +142,6 @@ function nextSlide() {
   if (assets.length === 0) return;
 
   const asset = assets[assetIndex];
-
-  // Advance index; refetch album when we've shown the last photo
-  if (assetIndex === assets.length - 1) {
-    fetchAlbum();
-  }
   assetIndex = (assetIndex + 1) % assets.length;
 
   const nextId = activeSlide === 'a' ? 'b' : 'a';
@@ -153,7 +154,6 @@ function nextSlide() {
     activeSlide = nextId;
   };
   nextEl.onerror = function() {
-    // Skip broken images — wait for the next scheduled interval tick
     console.warn('Failed to load thumbnail for asset:', asset.id);
   };
   nextEl.src = thumbnailUrl(asset.id);
@@ -164,14 +164,12 @@ async function startSlideshow() {
   if (ok) nextSlide();
 
   const intervalMs = CFG.immich.slideshowIntervalSeconds * 1000;
-  slideshowTimer = setInterval(() => {
+  slideshowTimer = setInterval(function() {
     if (!cameraOverlayActive()) nextSlide();
   }, intervalMs);
 
-  // Retry album fetch every 5 minutes in case Immich was down at start
-  setInterval(async () => {
-    if (assets.length === 0) await fetchAlbum();
-  }, 5 * 60 * 1000);
+  // Refresh the album list every 30 minutes to pick up new photos
+  setInterval(fetchAlbum, 30 * 60 * 1000);
 }
 
 // ============================================================
