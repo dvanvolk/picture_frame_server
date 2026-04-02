@@ -136,27 +136,27 @@ function nextSlide() {
   if (assets.length === 0) return;
 
   const asset = assets[assetIndex];
-  assetIndex = (assetIndex + 1) % assets.length;
 
-  // Reshuffle and refetch when we've cycled through all photos
-  if (assetIndex === 0) {
+  // Advance index; refetch album when we've shown the last photo
+  if (assetIndex === assets.length - 1) {
     fetchAlbum();
   }
+  assetIndex = (assetIndex + 1) % assets.length;
 
   const nextId = activeSlide === 'a' ? 'b' : 'a';
-  const nextEl = document.getElementById(`slide-${nextId}`);
-  const currEl = document.getElementById(`slide-${activeSlide}`);
+  const nextEl = document.getElementById('slide-' + nextId);
+  const currEl = document.getElementById('slide-' + activeSlide);
 
-  nextEl.onload = () => {
+  nextEl.onload = function() {
     nextEl.classList.add('visible');
     currEl.classList.remove('visible');
     activeSlide = nextId;
   };
-  nextEl.onerror = () => {
-    // Skip broken images silently
-    nextSlide();
+  nextEl.onerror = function() {
+    // Skip broken images — wait for the next scheduled interval tick
+    console.warn('Failed to load thumbnail for asset:', asset.id);
   };
-  nextEl.src = `${thumbnailUrl(asset.id)}&apiKey=${CFG.immich.apiKey}`;
+  nextEl.src = thumbnailUrl(asset.id);
 }
 
 async function startSlideshow() {
