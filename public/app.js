@@ -144,6 +144,17 @@ function thumbnailUrl(assetId) {
 }
 
 function nextSlide() {
+  // Special view intercept: every N photos, show the next special view
+  photosSinceSpecialView++;
+  if (
+    CFG.specialViews &&
+    CFG.specialViews.intervalPhotos > 0 &&
+    photosSinceSpecialView >= CFG.specialViews.intervalPhotos
+  ) {
+    showNextSpecialView();
+    return;
+  }
+
   if (assets.length === 0) return;
 
   const asset = assets[assetIndex];
@@ -170,7 +181,7 @@ async function startSlideshow() {
 
   const intervalMs = CFG.immich.slideshowIntervalSeconds * 1000;
   slideshowTimer = setInterval(function() {
-    if (!cameraOverlayActive()) nextSlide();
+    if (!cameraOverlayActive() && !specialViewActive()) nextSlide();
   }, intervalMs);
 
   // Refresh the album list every 30 minutes to pick up new photos
@@ -228,6 +239,95 @@ function resetCameraHideTimer() {
 }
 
 document.getElementById('camera-dismiss').addEventListener('click', hideCameraOverlay);
+
+// ============================================================
+// Special views — Dashboard and FlightAware
+// ============================================================
+
+let photosSinceSpecialView = 0;
+let specialViewQueueIndex  = 0;
+const specialViewQueue     = ['flightaware', 'dashboard'];
+let specialViewHideTimer   = null;
+
+function specialViewActive() {
+  return (
+    !document.getElementById('dashboard-overlay').classList.contains('hidden') ||
+    !document.getElementById('flightaware-overlay').classList.contains('hidden')
+  );
+}
+
+function showNextSpecialView() {
+  const viewName = specialViewQueue[specialViewQueueIndex % specialViewQueue.length];
+  specialViewQueueIndex++;
+  if (viewName === 'dashboard') showDashboard();
+  else if (viewName === 'flightaware') showFlightAware();
+}
+
+async function showDashboard() {
+  const overlay   = document.getElementById('dashboard-overlay');
+  const container = document.getElementById('sensor-cards');
+  container.innerHTML = '';
+  overlay.classList.remove('hidden');
+
+  // Fetch sensors and sun/moon data in parallel
+  const [sensors, sunMoon] = await Promise.all([
+    fetch('/api/sensor-states').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
+    fetch('/api/sun-moon').then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; }),
+  ]);
+
+  // Render temperature cards
+  if (sensors.length === 0) {
+    container.innerHTML = '<div class="sensor-card"><div class="sensor-card-label">No sensors configured</div></div>';
+  } else {
+    container.innerHTML = sensors.map(function(s) {
+      const parsedNum = parseFloat(s.state);
+      const hasValue  = s.state !== null && s.state !== 'unavailable' && s.state !== 'unknown';
+      const valueText = (hasValue && !isNaN(parsedNum)) ? Math.round(parsedNum) : (hasValue ? s.state : '--');
+      const unitText  = (hasValue && s.unit) ? s.unit : '';
+      const errClass  = hasValue ? '' : ' error';
+      return '<div class="sensor-card' + errClass + '">' +
+        '<div class="sensor-card-label">' + escapeHtml(s.label || s.entityId) + '</div>' +
+        '<div class="sensor-card-value">' + valueText + '</div>' +
+        '<div class="sensor-card-unit">'  + escapeHtml(unitText) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Render sun/moon bar
+  document.getElementById('sun-rise').textContent   = sunMoon.sunrise   || '--';
+  document.getElementById('sun-set').textContent    = sunMoon.sunset    || '--';
+  document.getElementById('moon-phase').textContent = sunMoon.moonPhase || '';
+
+  clearTimeout(specialViewHideTimer);
+  specialViewHideTimer = setTimeout(hideSpecialView,
+    (CFG.specialViews.dashboardDurationSeconds || 120) * 1000);
+}
+
+function showFlightAware() {
+  const frame = document.getElementById('flightaware-frame');
+  frame.src   = CFG.specialViews.flightAwareUrl || 'http://192.168.10.71:8080/';
+  document.getElementById('flightaware-overlay').classList.remove('hidden');
+
+  clearTimeout(specialViewHideTimer);
+  specialViewHideTimer = setTimeout(hideSpecialView,
+    (CFG.specialViews.flightAwareDurationSeconds || 120) * 1000);
+}
+
+function hideSpecialView() {
+  clearTimeout(specialViewHideTimer);
+  specialViewHideTimer = null;
+  document.getElementById('dashboard-overlay').classList.add('hidden');
+  const frame = document.getElementById('flightaware-frame');
+  frame.src   = ''; // stop iframe running in background
+  document.getElementById('flightaware-overlay').classList.add('hidden');
+  photosSinceSpecialView = 0;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // ============================================================
 // Music overlay

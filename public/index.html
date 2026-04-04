@@ -46,6 +46,22 @@
     </div>
   </div>
 
+  <!-- Dashboard overlay: room temperatures, sunrise/sunset, moon phase -->
+  <div id="dashboard-overlay" class="hidden">
+    <div class="dashboard-title">Home</div>
+    <div id="sensor-cards"></div>
+    <div id="sun-moon-bar">
+      <span id="sun-rise"></span>
+      <span id="sun-set"></span>
+      <span id="moon-phase"></span>
+    </div>
+  </div>
+
+  <!-- FlightAware overlay: live flight tracking iframe -->
+  <div id="flightaware-overlay" class="hidden">
+    <iframe id="flightaware-frame" src="" title="Flight Tracker" allowfullscreen></iframe>
+  </div>
+
   <!-- HA token injected by server — never commit a real token here -->
   <script>window.__HA_TOKEN__ = '%%HA_TOKEN%%';</script>
   <script src="app.js"></script>

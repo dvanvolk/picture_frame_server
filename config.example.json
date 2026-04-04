@@ -18,10 +18,23 @@
       "binary_sensor.reolink_front_door_person"
     ],
     "cameraAutoHideSeconds": 30,
-    "mediaPlayerEntity": "media_player.kitchen_speaker"
+    "mediaPlayerEntity": "media_player.kitchen_speaker",
+    "moonEntity": "sensor.moon"
   },
   "display": {
     "clockFormat24h": false,
     "temperatureUnit": "F"
+  },
+  "specialViews": {
+    "intervalPhotos": 20,
+    "dashboardDurationSeconds": 120,
+    "flightAwareDurationSeconds": 120,
+    "flightAwareUrl": "http://192.168.10.71:8080/",
+    "sensorEntities": [
+      { "entityId": "sensor.living_room_temperature", "label": "Living Room" },
+      { "entityId": "sensor.bedroom_temperature",     "label": "Bedroom" },
+      { "entityId": "sensor.kitchen_temperature",     "label": "Kitchen" },
+      { "entityId": "sensor.office_temperature",      "label": "Office" }
+    ]
   }
 }

@@ -235,3 +235,126 @@ html, body {
   text-overflow: ellipsis;
   text-shadow: 0 2px 8px rgba(0,0,0,0.9);
 }
+
+/* ============================================================
+   Special views — Dashboard and FlightAware
+   ============================================================ */
+
+#dashboard-overlay,
+#flightaware-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+#dashboard-overlay.hidden,
+#flightaware-overlay.hidden {
+  display: none;
+}
+
+/* Dashboard sits at z-index 8 so the info-bar (z-index 10) remains visible */
+#dashboard-overlay {
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px 60px 160px; /* bottom padding clears the info bar */
+}
+
+.dashboard-title {
+  font-size: 48px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+#sensor-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  justify-content: center;
+}
+
+.sensor-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 32px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.sensor-card-label {
+  font-size: 26px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sensor-card-value {
+  font-size: 80px;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  white-space: nowrap;
+}
+
+.sensor-card-unit {
+  font-size: 28px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sensor-card.error .sensor-card-value {
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+#sun-moon-bar {
+  display: flex;
+  gap: 60px;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+#sun-moon-bar span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#sun-moon-bar span::before {
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#sun-rise::before  { content: 'Rise'; }
+#sun-set::before   { content: 'Set'; }
+#moon-phase::before { content: 'Moon'; }
+
+/* FlightAware: z-index 30 — full immersive, covers info bar */
+#flightaware-overlay {
+  z-index: 30;
+  display: flex;
+}
+
+#flightaware-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
