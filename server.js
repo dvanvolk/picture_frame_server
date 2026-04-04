@@ -209,9 +209,15 @@ app.get('/api/sun-moon', async (req, res) => {
     return state.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
   }
 
-  // Fetch sun.sun and moon entity in parallel
-  const [sunResult, moonResult] = await Promise.allSettled([
-    fetch(`${haBase}/api/states/sun.sun`, {
+  // Fetch sunrise, sunset, and moon entity in parallel.
+  // Newer HA versions expose rising/setting as separate sensor entities rather
+  // than attributes of sun.sun, so we fetch all three independently.
+  const [riseResult, setResult, moonResult] = await Promise.allSettled([
+    fetch(`${haBase}/api/states/sensor.sun_next_rising`, {
+      headers: { Authorization: `Bearer ${haToken}` },
+      timeout: 8000,
+    }),
+    fetch(`${haBase}/api/states/sensor.sun_next_setting`, {
       headers: { Authorization: `Bearer ${haToken}` },
       timeout: 8000,
     }),
@@ -226,17 +232,30 @@ app.get('/api/sun-moon', async (req, res) => {
   let sunsetIso  = null;
   let moonPhase  = null;
 
-  if (sunResult.status === 'fulfilled' && sunResult.value.ok) {
+  if (riseResult.status === 'fulfilled' && riseResult.value.ok) {
     try {
-      const sunData = await sunResult.value.json();
-      const attrs = sunData.attributes || {};
-      sunriseIso = attrs.next_rising  || null;
-      sunsetIso  = attrs.next_setting || null;
+      const data = await riseResult.value.json();
+      if (data.state && data.state !== 'unavailable' && data.state !== 'unknown') {
+        sunriseIso = data.state;
+      }
     } catch (err) {
-      console.warn('sun.sun parse error:', err.message);
+      console.warn('sun_next_rising parse error:', err.message);
     }
   } else {
-    console.warn('sun.sun fetch failed');
+    console.warn('sensor.sun_next_rising fetch failed');
+  }
+
+  if (setResult.status === 'fulfilled' && setResult.value.ok) {
+    try {
+      const data = await setResult.value.json();
+      if (data.state && data.state !== 'unavailable' && data.state !== 'unknown') {
+        sunsetIso = data.state;
+      }
+    } catch (err) {
+      console.warn('sun_next_setting parse error:', err.message);
+    }
+  } else {
+    console.warn('sensor.sun_next_setting fetch failed');
   }
 
   if (moonResult.status === 'fulfilled' && moonResult.value.ok) {

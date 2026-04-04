@@ -343,8 +343,8 @@ html, body {
   letter-spacing: 1px;
 }
 
-#sun-rise::before  { content: 'Rise'; }
-#sun-set::before   { content: 'Set'; }
+#sun-rise::before   { content: 'Sun Rise'; }
+#sun-set::before    { content: 'Sun Set'; }
 #moon-phase::before { content: 'Moon'; }
 
 /* FlightAware: z-index 30 — full immersive, covers info bar */
