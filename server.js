@@ -203,11 +203,6 @@ app.get('/api/sensor-states', async (req, res) => {
 app.get('/api/sun-moon', async (req, res) => {
   const haBase  = config.homeAssistant.baseUrl;
   const haToken = config.homeAssistant.token;
-  const timeOpts = {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: !config.display.clockFormat24h,
-  };
 
   // Helper: convert snake_case moon phase to Title Case
   function formatMoonPhase(state) {
@@ -226,20 +221,17 @@ app.get('/api/sun-moon', async (req, res) => {
     }),
   ]);
 
-  let sunrise = null;
-  let sunset  = null;
-  let moonPhase = null;
+  // Return raw ISO strings — the browser formats them in its own local timezone
+  let sunriseIso = null;
+  let sunsetIso  = null;
+  let moonPhase  = null;
 
   if (sunResult.status === 'fulfilled' && sunResult.value.ok) {
     try {
       const sunData = await sunResult.value.json();
       const attrs = sunData.attributes || {};
-      if (attrs.next_rising) {
-        sunrise = new Date(attrs.next_rising).toLocaleTimeString([], timeOpts);
-      }
-      if (attrs.next_setting) {
-        sunset = new Date(attrs.next_setting).toLocaleTimeString([], timeOpts);
-      }
+      sunriseIso = attrs.next_rising  || null;
+      sunsetIso  = attrs.next_setting || null;
     } catch (err) {
       console.warn('sun.sun parse error:', err.message);
     }
@@ -260,7 +252,7 @@ app.get('/api/sun-moon', async (req, res) => {
     console.warn('Moon entity fetch failed — moon phase will not be shown');
   }
 
-  res.json({ sunrise, sunset, moonPhase });
+  res.json({ sunriseIso, sunsetIso, moonPhase });
 });
 
 // ---------------------------------------------------------------------------

@@ -18,8 +18,8 @@
       "binary_sensor.reolink_front_door_person"
     ],
     "cameraAutoHideSeconds": 30,
-    "mediaPlayerEntity": "media_player.kitchen_speaker",
-    "moonEntity": "sensor.moon"
+      "mediaPlayerEntity": "media_player.kitchen_speaker",
+      "moonEntity": "sensor.moon_phase"
   },
   "display": {
     "clockFormat24h": false,
@@ -31,10 +31,12 @@
     "flightAwareDurationSeconds": 120,
     "flightAwareUrl": "http://192.168.10.71:8080/",
     "sensorEntities": [
-      { "entityId": "sensor.living_room_temperature", "label": "Living Room" },
-      { "entityId": "sensor.bedroom_temperature",     "label": "Bedroom" },
-      { "entityId": "sensor.kitchen_temperature",     "label": "Kitchen" },
-      { "entityId": "sensor.office_temperature",      "label": "Office" }
+      { "entityId": "sensor.office_aqara_temp_temperature", "label": "Office" },
+      { "entityId": "sensor.down_bath_aqara_temperature_sensor_temperature", "label": "Bathroom" },
+      { "entityId": "sensor.temperature_dna_room",     "label": "DNA Bedroom" },
+      { "entityId": "sensor.temperature_aiden_room",     "label": "Aiden Bedroom" },
+      { "entityId": "sensor.temperature_elizabeth_room",     "label": "Elizabeth Bedroom" },
+      { "entityId": "sensor.basement_aqara_temperature_sensor_temperature",      "label": "Basement" }
     ]
   }
 }

@@ -293,9 +293,10 @@ async function showDashboard() {
     }).join('');
   }
 
-  // Render sun/moon bar
-  document.getElementById('sun-rise').textContent   = sunMoon.sunrise   || '--';
-  document.getElementById('sun-set').textContent    = sunMoon.sunset    || '--';
+  // Render sun/moon bar — format ISO timestamps in the browser's local timezone
+  const timeOpts = { hour: 'numeric', minute: '2-digit', hour12: !CFG.display.clockFormat24h };
+  document.getElementById('sun-rise').textContent   = sunMoon.sunriseIso ? new Date(sunMoon.sunriseIso).toLocaleTimeString([], timeOpts) : '--';
+  document.getElementById('sun-set').textContent    = sunMoon.sunsetIso  ? new Date(sunMoon.sunsetIso).toLocaleTimeString([], timeOpts)  : '--';
   document.getElementById('moon-phase').textContent = sunMoon.moonPhase || '';
 
   clearTimeout(specialViewHideTimer);
