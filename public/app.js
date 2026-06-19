@@ -77,7 +77,9 @@ async function fetchWeather() {
 function applyWeather(data) {
   const temp = data.temperature !== null ? `${Math.round(data.temperature)}${data.unit}` : '--';
   const condition = weatherConditionMap[data.condition] || data.condition || '';
+  const high = data.tempHigh !== null && data.tempHigh !== undefined ? `H: ${Math.round(data.tempHigh)}${data.unit}` : '';
   document.getElementById('weather-temp').textContent = temp;
+  document.getElementById('weather-high').textContent = high;
   document.getElementById('weather-condition').textContent = condition;
 }
 

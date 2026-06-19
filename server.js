@@ -141,9 +141,11 @@ app.get('/api/weather', async (req, res) => {
       return res.status(502).json({ error: `HA returned ${response.status}` });
     }
     const data = await response.json();
+    const forecast = data.attributes && Array.isArray(data.attributes.forecast) ? data.attributes.forecast : [];
     res.json({
       condition: data.state,
       temperature: (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null,
+      tempHigh: (forecast[0] && forecast[0].temperature !== undefined) ? forecast[0].temperature : null,
       unit: config.display.temperatureUnit === 'F' ? '°F' : '°C',
       humidity: (data.attributes && data.attributes.humidity !== undefined) ? data.attributes.humidity : null,
     });
