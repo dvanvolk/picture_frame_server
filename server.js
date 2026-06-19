@@ -131,23 +131,31 @@ app.get('/api/config', (req, res) => {
 // ---------------------------------------------------------------------------
 
 app.get('/api/weather', async (req, res) => {
-  const url = `${config.homeAssistant.baseUrl}/api/states/${config.homeAssistant.weatherEntity}`;
+  const stateUrl    = `${config.homeAssistant.baseUrl}/api/states/${config.homeAssistant.weatherEntity}`;
+  const forecastUrl = `${config.homeAssistant.baseUrl}/api/services/weather/get_forecasts?return_response=true`;
+  const headers = { Authorization: `Bearer ${config.homeAssistant.token}`, 'Content-Type': 'application/json' };
   try {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${config.homeAssistant.token}` },
-      timeout: 8000,
-    });
-    if (!response.ok) {
-      return res.status(502).json({ error: `HA returned ${response.status}` });
+    const [stateRes, forecastRes] = await Promise.all([
+      fetch(stateUrl, { headers, timeout: 8000 }),
+      fetch(forecastUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ entity_id: config.homeAssistant.weatherEntity, type: 'daily' }),
+        timeout: 8000,
+      }),
+    ]);
+    if (!stateRes.ok) {
+      return res.status(502).json({ error: `HA returned ${stateRes.status}` });
     }
-    const data = await response.json();
-    const forecast = data.attributes && Array.isArray(data.attributes.forecast) ? data.attributes.forecast : [];
+    const data         = await stateRes.json();
+    const forecastBody = forecastRes.ok ? await forecastRes.json() : {};
+    const forecast     = forecastBody?.service_response?.[config.homeAssistant.weatherEntity]?.forecast || [];
     res.json({
-      condition: data.state,
-      temperature: (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null,
-      tempHigh: (forecast[0] && forecast[0].temperature !== undefined) ? forecast[0].temperature : null,
-      unit: config.display.temperatureUnit === 'F' ? '°F' : '°C',
-      humidity: (data.attributes && data.attributes.humidity !== undefined) ? data.attributes.humidity : null,
+      condition:   data.state,
+      temperature: data.attributes?.temperature ?? null,
+      tempHigh:    forecast[0]?.temperature ?? null,
+      unit:        config.display.temperatureUnit === 'F' ? '°F' : '°C',
+      humidity:    data.attributes?.humidity ?? null,
     });
   } catch (err) {
     console.error('Weather fetch error:', err.message);
