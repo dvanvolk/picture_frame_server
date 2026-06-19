@@ -77,10 +77,17 @@ async function fetchWeather() {
 function applyWeather(data) {
   const temp = data.temperature !== null ? `${Math.round(data.temperature)}${data.unit}` : '--';
   const condition = weatherConditionMap[data.condition] || data.condition || '';
-  const high = data.tempHigh !== null && data.tempHigh !== undefined ? `H: ${Math.round(data.tempHigh)}${data.unit}` : '';
   document.getElementById('weather-temp').textContent = temp;
-  document.getElementById('weather-high').textContent = high;
   document.getElementById('weather-condition').textContent = condition;
+}
+
+function applyForecastHigh(result) {
+  if (!result || !result.response) return;
+  const entityData = result.response[CFG.homeAssistant.weatherEntity];
+  const forecast   = (entityData && Array.isArray(entityData.forecast)) ? entityData.forecast : [];
+  const tempHigh   = (forecast[0] && forecast[0].temperature !== undefined) ? forecast[0].temperature : null;
+  const unit       = lastWeather ? lastWeather.unit : (CFG.display.temperatureUnit === 'F' ? '°F' : '°C');
+  document.getElementById('weather-high').textContent = tempHigh !== null ? 'H: ' + Math.round(tempHigh) + unit : '';
 }
 
 function startWeather() {
@@ -359,6 +366,31 @@ class HAWebSocket {
     this.ws = null;
     this.backoffMs = 5000;
     this.reconnectTimer = null;
+    this._forecastEntityId = null;
+    this._forecastCallback = null;
+    this._pendingForecastId = null;
+  }
+
+  setForecastHandler(entityId, callback) {
+    this._forecastEntityId = entityId;
+    this._forecastCallback = callback;
+  }
+
+  requestForecast() {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this._forecastEntityId) {
+      this._sendForecastRequest();
+    }
+  }
+
+  _sendForecastRequest() {
+    this._pendingForecastId = this.msgId;
+    this._send({
+      type: 'call_service',
+      domain: 'weather',
+      service: 'get_forecasts',
+      service_data: { entity_id: this._forecastEntityId, type: 'daily' },
+      return_response: true,
+    });
   }
 
   connect() {
@@ -396,6 +428,7 @@ class HAWebSocket {
         console.log('HA WebSocket: authenticated');
         this.backoffMs = 5000; // reset backoff on success
         this._send({ type: 'subscribe_events', event_type: 'state_changed' });
+        if (this._forecastEntityId) this._sendForecastRequest();
         break;
 
       case 'auth_invalid':
@@ -406,6 +439,13 @@ class HAWebSocket {
       case 'event':
         if (msg.event?.event_type === 'state_changed') {
           this.onStateChanged(msg.event.data);
+        }
+        break;
+
+      case 'result':
+        if (msg.id === this._pendingForecastId && this._forecastCallback) {
+          this._forecastCallback(msg.success ? msg.result : null);
+          this._pendingForecastId = null;
         }
         break;
     }
@@ -473,7 +513,11 @@ async function boot() {
     window.__HA_TOKEN__,
     handleStateChanged
   );
+  haWs.setForecastHandler(CFG.homeAssistant.weatherEntity, applyForecastHigh);
   haWs.connect();
+
+  // Refresh forecast high every 30 minutes
+  setInterval(function() { haWs.requestForecast(); }, 30 * 60 * 1000);
 }
 
 boot().catch(err => console.error('Boot error:', err));
