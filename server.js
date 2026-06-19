@@ -149,13 +149,15 @@ app.get('/api/weather', async (req, res) => {
     }
     const data         = await stateRes.json();
     const forecastBody = forecastRes.ok ? await forecastRes.json() : {};
-    const forecast     = forecastBody?.service_response?.[config.homeAssistant.weatherEntity]?.forecast || [];
+    const svcResponse  = forecastBody && forecastBody.service_response;
+    const entityFc     = svcResponse && svcResponse[config.homeAssistant.weatherEntity];
+    const forecast     = (entityFc && Array.isArray(entityFc.forecast)) ? entityFc.forecast : [];
     res.json({
       condition:   data.state,
-      temperature: data.attributes?.temperature ?? null,
-      tempHigh:    forecast[0]?.temperature ?? null,
+      temperature: (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null,
+      tempHigh:    (forecast[0] && forecast[0].temperature !== undefined) ? forecast[0].temperature : null,
       unit:        config.display.temperatureUnit === 'F' ? '°F' : '°C',
-      humidity:    data.attributes?.humidity ?? null,
+      humidity:    (data.attributes && data.attributes.humidity !== undefined) ? data.attributes.humidity : null,
     });
   } catch (err) {
     console.error('Weather fetch error:', err.message);
