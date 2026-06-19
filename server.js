@@ -131,16 +131,21 @@ app.get('/api/config', (req, res) => {
 // ---------------------------------------------------------------------------
 
 app.get('/api/weather-debug', async (req, res) => {
-  const forecastUrl = `${config.homeAssistant.baseUrl}/api/services/weather/get_forecasts?return_response=true`;
+  const base    = config.homeAssistant.baseUrl;
+  const entity  = config.homeAssistant.weatherEntity;
   const headers = { Authorization: `Bearer ${config.homeAssistant.token}`, 'Content-Type': 'application/json' };
+  async function tryForecast(type, returnResponse) {
+    const url = base + '/api/services/weather/get_forecasts' + (returnResponse ? '?return_response' : '');
+    const r   = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ entity_id: entity, type }), timeout: 8000 });
+    return { url, status: r.status, body: r.ok ? await r.json() : await r.text() };
+  }
   try {
-    const forecastRes = await fetch(forecastUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ entity_id: config.homeAssistant.weatherEntity, type: 'daily' }),
-      timeout: 8000,
-    });
-    res.json({ status: forecastRes.status, body: forecastRes.ok ? await forecastRes.json() : await forecastRes.text() });
+    const results = await Promise.all([
+      tryForecast('daily',  true),
+      tryForecast('daily',  false),
+      tryForecast('hourly', true),
+    ]);
+    res.json(results);
   } catch (err) {
     res.json({ error: err.message });
   }
