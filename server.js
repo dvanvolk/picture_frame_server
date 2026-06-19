@@ -127,6 +127,26 @@ app.get('/api/config', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/weather-debug — raw HA forecast response (temporary)
+// ---------------------------------------------------------------------------
+
+app.get('/api/weather-debug', async (req, res) => {
+  const forecastUrl = `${config.homeAssistant.baseUrl}/api/services/weather/get_forecasts?return_response=true`;
+  const headers = { Authorization: `Bearer ${config.homeAssistant.token}`, 'Content-Type': 'application/json' };
+  try {
+    const forecastRes = await fetch(forecastUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ entity_id: config.homeAssistant.weatherEntity, type: 'daily' }),
+      timeout: 8000,
+    });
+    res.json({ status: forecastRes.status, body: forecastRes.ok ? await forecastRes.json() : await forecastRes.text() });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/weather — proxied HA weather state
 // ---------------------------------------------------------------------------
 
