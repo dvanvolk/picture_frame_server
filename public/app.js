@@ -445,8 +445,6 @@ class HAWebSocket {
 
       case 'result':
         if (msg.id === this._pendingForecastId && this._forecastCallback) {
-          if (!msg.success) console.warn('HA forecast call failed:', msg.error);
-          else console.log('HA forecast result:', JSON.stringify(msg.result));
           this._forecastCallback(msg.success ? msg.result : null);
           this._pendingForecastId = null;
         }
