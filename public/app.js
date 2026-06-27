@@ -388,7 +388,8 @@ class HAWebSocket {
       type: 'call_service',
       domain: 'weather',
       service: 'get_forecasts',
-      service_data: { entity_id: this._forecastEntityId, type: 'daily' },
+      target: { entity_id: this._forecastEntityId },
+      service_data: { type: 'daily' },
       return_response: true,
     });
   }
@@ -444,6 +445,7 @@ class HAWebSocket {
 
       case 'result':
         if (msg.id === this._pendingForecastId && this._forecastCallback) {
+          if (!msg.success) console.warn('HA forecast call failed:', msg.error);
           this._forecastCallback(msg.success ? msg.result : null);
           this._pendingForecastId = null;
         }
