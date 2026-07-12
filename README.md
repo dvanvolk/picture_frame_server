@@ -1,6 +1,6 @@
 # Picture Frame
 
-A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an [Immich](https://immich.app) shared album with a large, across-the-room-readable clock and weather overlay. Integrates with [Home Assistant](https://www.home-assistant.io/) for real-time events: shows a live doorbell camera feed when motion or a button press is detected, and displays the current song when music is playing.
+A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an [Immich](https://immich.app) shared album with a large, across-the-room-readable clock and weather overlay, and periodically switches to a home-sensor dashboard or a live flight tracker. Integrates with [Home Assistant](https://www.home-assistant.io/) for real-time events: shows a live doorbell camera feed when motion or a button press is detected, and displays the current song when music is playing.
 
 ---
 
@@ -8,7 +8,9 @@ A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an 
 
 - **Photo slideshow** — pulls images from an Immich shared album, shuffles and cycles continuously
 - **Large clock** — 96px font, readable from across the room
-- **Weather** — temperature and condition from a Home Assistant weather entity, updated every 5 minutes
+- **Weather** — current temperature/condition from a Home Assistant weather entity (updated every 5 minutes), plus today's forecast high (fetched over the HA WebSocket every 30 minutes)
+- **Room dashboard** — every N photos, shows a rotating overlay with temperature sensor cards from configured HA entities, plus sunrise, sunset, and moon phase
+- **Flight tracker** — every N photos, shows an embedded FlightAware (or similar) live view in an iframe
 - **Doorbell camera overlay** — triggered by any Home Assistant entity (person detection, button press, etc.); shows a refreshing snapshot from your Reolink or other HA-connected camera
 - **Music overlay** — shows song title and artist when a Home Assistant media player is playing
 - **Resilient** — reconnects to HA WebSocket automatically, retries Immich on failure, keeps showing last known weather if HA is briefly unreachable
@@ -17,41 +19,43 @@ A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an 
 
 ## Architecture
 
-The server can run on **any machine on your network** — a NAS, desktop, spare Pi, or Docker host. The display Pi just runs Chromium in kiosk mode pointing at the server URL.
+The server runs as an **LXC container on Proxmox** on the home network. The display Pi just runs Chromium in kiosk mode pointing at the server URL — it does no HA/Immich configuration of its own.
 
 ```
-[Server — any LAN machine]       [Raspberry Pi — display only]
- Node.js + Express            <── Chromium in kiosk mode
-  ├── Serves the frontend          http://<server-ip>:3000
+[Server — Proxmox LXC container]       [Raspberry Pi — display only]
+ Node.js + Express                  <── Chromium in kiosk mode
+  ├── Serves the frontend               http://<server-ip>:3000
   ├── Proxies HA camera snapshots
-  └── Proxies HA weather data
+  ├── Proxies HA weather / sensor / sun-moon state
+  └── Proxies the Immich album list
 
 [Browser (Chromium on Pi)]
-  ├── Fetches Immich photos directly (same LAN)
-  ├── Connects to HA WebSocket directly (real-time events)
-  └── Fetches camera snapshots via the local server proxy
+  ├── Fetches Immich photo thumbnails directly (same LAN, using the API key from /api/config)
+  ├── Connects to HA WebSocket directly (real-time events + forecast requests)
+  └── Fetches camera snapshots / sensor / weather / album data via the local server proxy
 ```
 
-The HA long-lived access token is injected server-side and never exposed in static files.
+The HA long-lived access token is injected server-side and never exposed in static files. (The Immich API key is currently passed to the browser via `/api/config` since the browser fetches thumbnails directly from Immich.)
 
 ---
 
 ## Requirements
 
-### Server machine
-- [Node.js](https://nodejs.org/) v18 or newer
+### Server
+- Runs in an **LXC container on Proxmox** (any Linux host with [Node.js](https://nodejs.org/) v18+ works too — the install script isn't Proxmox-specific)
 
 ### Raspberry Pi (display)
 - Raspberry Pi OS (Desktop) with Chromium installed
-- Network access to the server machine
+- Network access to the server container
 
 ### Services
 - [Immich](https://immich.app/) with at least one shared album
 - [Home Assistant](https://www.home-assistant.io/) with:
-  - A weather integration (e.g. Met.no, OpenWeatherMap, National Weather Service)
+  - A weather integration (e.g. Met.no, OpenWeatherMap, National Weather Service) that supports `weather.get_forecasts`
   - A camera integration for your doorbell (e.g. Reolink, Frigate, Ring via HA)
   - A media player entity (e.g. Spotify, Sonos, Cast)
   - Sensor entities for your doorbell triggers (motion/person/button press)
+  - (Optional) Temperature sensor entities for the dashboard view, and a moon phase sensor
 
 ---
 
@@ -86,9 +90,9 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to verify everything works.
 
-### 5. Deploy to a server machine (optional)
+### 5. Deploy to your Proxmox LXC container (optional)
 
-Run the install script on any Linux machine to install as a systemd service:
+Run the install script inside the LXC container to install as a systemd service:
 
 ```bash
 sudo bash scripts/install.sh
@@ -109,7 +113,7 @@ journalctl -u picture-frame -f
 
 ### 6. Configure the Raspberry Pi
 
-On the Pi, edit `scripts/pi-kiosk-setup.sh` and set `SERVER_URL` to your server's address, then run:
+On the Pi, edit `scripts/pi-kiosk-setup.sh` and set `SERVER_URL` to your Proxmox container's address, then run:
 
 ```bash
 bash scripts/pi-kiosk-setup.sh
@@ -152,15 +156,30 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
     "cameraAutoHideSeconds": 30,                    // Auto-dismiss camera overlay after N seconds
 
-    "mediaPlayerEntity": "media_player.kitchen"     // Entity ID of your music player
+    "mediaPlayerEntity": "media_player.kitchen",    // Entity ID of your music player
+
+    "moonEntity": "sensor.moon"                     // Entity ID of your moon phase sensor (default: sensor.moon)
   },
 
   "display": {
     "clockFormat24h": false,   // true = 24-hour clock, false = 12-hour with AM/PM
     "temperatureUnit": "F"     // "F" for Fahrenheit, "C" for Celsius
+  },
+
+  "specialViews": {
+    "intervalPhotos": 20,                     // Show a special view after this many photos
+    "dashboardDurationSeconds": 120,          // How long the dashboard view stays up
+    "flightAwareDurationSeconds": 120,        // How long the flight tracker view stays up
+    "flightAwareUrl": "http://192.168.10.71:8080/",  // URL loaded in the flight-tracker iframe
+    "sensorEntities": [                       // Temperature (or other) sensors shown as cards
+      { "entityId": "sensor.office_temperature", "label": "Office" },
+      { "entityId": "sensor.basement_temperature", "label": "Basement" }
+    ]
   }
 }
 ```
+
+Special views rotate in a fixed order (flight tracker, then dashboard) every time `intervalPhotos` photos have been shown, and the slideshow resumes automatically once each view's duration elapses.
 
 ### Finding your Immich album ID
 
@@ -177,7 +196,7 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
 ### Finding your HA entity IDs
 
-Go to **Settings → Devices & Services → Entities** in Home Assistant and search for your camera, weather, doorbell sensors, and media player. The entity ID is shown in the detail panel (e.g. `camera.reolink_front_door`).
+Go to **Settings → Devices & Services → Entities** in Home Assistant and search for your camera, weather, doorbell sensors, media player, temperature sensors, and moon sensor. The entity ID is shown in the detail panel (e.g. `camera.reolink_front_door`).
 
 For Reolink cameras, common entity IDs are:
 | Entity | Typical ID |
@@ -214,13 +233,13 @@ If you prefer to configure the Pi manually instead of using `pi-kiosk-setup.sh`:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│  3:42 PM                              72°F  H: 78°F  Sunny  │  ← info bar
+├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │                      [ photo ]                              │
 │                                                             │
 │  ♫ Song Title                                               │  ← music overlay
-│    Artist Name                                              │    (above info bar)
-├─────────────────────────────────────────────────────────────┤
-│  3:42 PM                              72°F  Sunny           │  ← info bar
+│    Artist Name                                              │
 └─────────────────────────────────────────────────────────────┘
 
 When doorbell triggers:
@@ -231,6 +250,14 @@ When doorbell triggers:
 │             │  camera snapshot │  (refreshes every 2s)     │
 │             └──────────────────┘                            │
 └─────────────────────────────────────────────────────────────┘
+
+Special views (rotate in every `intervalPhotos` photos):
+┌─────────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────────┐
+│  Home                                                        │   │                                                             │
+│  [Office 71°] [Bathroom 68°] [DNA 70°] [Aiden 69°] ...        │   │                  [ FlightAware iframe ]                    │
+│  Sunrise 6:12 AM   Sunset 8:45 PM   Waxing Gibbous             │   │                                                             │
+└─────────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────────┘
+        Room dashboard                                                     Flight tracker
 ```
 
 ---
@@ -240,17 +267,28 @@ When doorbell triggers:
 **Photos not loading**
 - Verify `immich.baseUrl` and `immich.apiKey` in `config.json`
 - Check that the `albumId` is correct and the album contains images
-- Confirm the server machine can reach Immich: `curl http://<immich>/api/server-info`
+- Confirm the display Pi (not just the server) can reach Immich directly — thumbnails are fetched browser-side: `curl http://<immich>/api/server-info`
 
 **Weather shows `--`**
 - Check `homeAssistant.baseUrl` and `homeAssistant.token`
 - Verify the weather entity exists: open `http://<ha>/api/states/<weatherEntity>` in a browser with the token
 - Check server logs: `journalctl -u picture-frame -f`
 
+**Forecast high not showing**
+- Confirm your weather integration supports the `weather.get_forecasts` service with `type: daily` — not all HA weather integrations do
+- Check the browser console on the Pi for `HA WebSocket` errors
+
 **Doorbell camera not appearing**
 - Confirm the trigger entity IDs are correct in `cameraTriggerEntities`
 - Test by toggling the entity in HA Developer Tools → States
 - Check the camera entity ID is correct — the server logs will show errors if the proxy call fails
+
+**Dashboard sensor cards show `--` or "No sensors configured"**
+- Make sure `specialViews.sensorEntities` is populated with valid entity IDs
+- An individual card showing `--` means that entity's state was `unavailable`/`unknown` or the HA fetch failed for it
+
+**Flight tracker shows blank**
+- Verify `specialViews.flightAwareUrl` is reachable from the display Pi's browser (it's loaded directly in an iframe, not proxied)
 
 **HA WebSocket disconnecting frequently**
 - This is usually a network issue; the app reconnects automatically with exponential backoff
@@ -267,16 +305,16 @@ When doorbell triggers:
 ```
 PictureFrame/
 ├── server.js               Express server: static files, API proxies, token injection
-├── config.json             Your config (gitignored)
-├── config.example.json     Config template
+├── config.json              Your config (gitignored)
+├── config.example.json      Config template
 ├── package.json
 ├── .gitignore
 ├── public/
-│   ├── index.html          Page structure
-│   ├── style.css           All styles
-│   └── app.js              All frontend logic
+│   ├── index.html            Page structure
+│   ├── style.css             All styles
+│   └── app.js                All frontend logic
 └── scripts/
-    ├── install.sh          Linux server setup (installs systemd service)
-    ├── pi-kiosk-setup.sh   Pi kiosk mode configuration
-    └── picture-frame.service  systemd unit file
+    ├── install.sh              Linux server setup (installs systemd service)
+    ├── pi-kiosk-setup.sh        Pi kiosk mode configuration
+    └── picture-frame.service    systemd unit file
 ```
