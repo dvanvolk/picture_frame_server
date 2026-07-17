@@ -113,14 +113,14 @@ journalctl -u picture-frame -f
 
 ### 6. Configure the Raspberry Pi
 
-On the Pi, edit `scripts/pi-kiosk-setup.sh` and set `SERVER_URL` to your Proxmox container's address, then run:
+On the Pi, edit `scripts/pi-kiosk-setup.sh` and set `SERVER_URL` to your Proxmox container's address (and adjust the restart/screen-off schedule at the top of the script if you want different times), then run:
 
 ```bash
 bash scripts/pi-kiosk-setup.sh
 sudo reboot
 ```
 
-Chromium will launch automatically in kiosk mode on boot, pointing at your server.
+Chromium launches automatically in kiosk mode on boot, pointing at your server. The script also installs three cron jobs: a daily Chromium restart (default 3 AM) to clear Chromium's memory leak before it can freeze the display, and an overnight screen-off/on window (default 11 PM–6:30 AM) that both saves the screen and gives you a second daily restart. Re-running the script updates these cron entries in place rather than duplicating them.
 
 ---
 
@@ -221,11 +221,20 @@ If you prefer to configure the Pi manually instead of using `pi-kiosk-setup.sh`:
 @chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --incognito http://<server-ip>:3000
 ```
 
-**Prevent Chromium memory leaks** — add a nightly restart via cron (`crontab -e`):
+**Prevent Chromium memory leaks** — add a daily restart via cron (`crontab -e`):
 
 ```
 0 3 * * * DISPLAY=:0 pkill -f chromium-browser; sleep 5; DISPLAY=:0 chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --incognito http://<server-ip>:3000 &
 ```
+
+**Turn the screen off overnight** — also stops Chromium during the off window and relaunches it on wake, giving you a second daily restart:
+
+```
+0 23 * * * DISPLAY=:0 pkill -f chromium-browser; vcgencmd display_power 0
+30 6 * * * vcgencmd display_power 1; sleep 3; DISPLAY=:0 chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --incognito http://<server-ip>:3000 &
+```
+
+`vcgencmd display_power` needs the legacy X11 display stack (which is what the `LXDE-pi` autostart setup above assumes — this holds even if `$XDG_SESSION_TYPE` reports `tty`, which is normal for an autologin-plus-`startx` kiosk setup). If your Pi runs Wayland instead, use `wlr-randr --output <name> --off` / `--on` in place of the `vcgencmd` calls.
 
 ---
 
@@ -296,6 +305,11 @@ Special views (rotate in every `intervalPhotos` photos):
 
 **Music overlay not showing**
 - Confirm `mediaPlayerEntity` matches the exact entity ID in HA
+
+**Display frozen (clock stuck, nothing updating)**
+- Usually Chromium hung or was OOM-killed by a memory leak, not a code issue — `ssh` into the Pi; if that also doesn't respond the whole Pi is wedged and needs a power cycle
+- If SSH works, check `ps aux | grep chromium` and `dmesg -T | tail -50 | grep -i oom`
+- `scripts/pi-kiosk-setup.sh` installs a daily Chromium restart plus an overnight restart via the screen-off/on cron jobs specifically to bound how long a leak can run before it's cleared; if freezes still happen mid-day, shorten the restart interval or investigate what's leaking (the FlightAware iframe, which runs an arbitrary external page, is the prime suspect)
 - The overlay appears when the player state is `playing` and disappears on `paused`/`idle`
 
 ---
