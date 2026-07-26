@@ -1,6 +1,6 @@
 # Picture Frame
 
-A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an [Immich](https://immich.app) shared album with a large, across-the-room-readable clock and weather overlay, and periodically switches to a home-sensor dashboard or a live flight tracker. Integrates with [Home Assistant](https://www.home-assistant.io/) for real-time events: shows a live doorbell camera feed when motion or a button press is detected, and displays the current song when music is playing.
+A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an [Immich](https://immich.app) shared album with a large, across-the-room-readable clock and weather overlay, and periodically switches to an embedded Grafana temperature dashboard or a live flight tracker. Integrates with [Home Assistant](https://www.home-assistant.io/) for real-time events: shows a live doorbell camera feed when motion or a button press is detected, and displays the current song when music is playing.
 
 ---
 
@@ -9,7 +9,7 @@ A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an 
 - **Photo slideshow** — pulls images from an Immich shared album, shuffles and cycles continuously
 - **Large clock** — 96px font, readable from across the room
 - **Weather** — current temperature/condition from a Home Assistant weather entity (updated every 5 minutes), plus today's forecast high (fetched over the HA WebSocket every 30 minutes)
-- **Room dashboard** — every N photos, shows a rotating overlay with temperature sensor cards from configured HA entities, plus sunrise, sunset, and moon phase
+- **Temperature dashboard** — every N photos, shows an embedded Grafana dashboard (live temps, history, min/max, threshold status, plus sunrise/sunset/moon phase) in a full-screen iframe
 - **Flight tracker** — every N photos, shows an embedded FlightAware (or similar) live view in an iframe
 - **Doorbell camera overlay** — triggered by any Home Assistant entity (person detection, button press, etc.); shows a refreshing snapshot from your Reolink or other HA-connected camera
 - **Music overlay** — shows song title and artist when a Home Assistant media player is playing
@@ -26,7 +26,7 @@ The server runs as an **LXC container on Proxmox** on the home network. The disp
  Node.js + Express                  <── Chromium in kiosk mode
   ├── Serves the frontend               http://<server-ip>:3000
   ├── Proxies HA camera snapshots
-  ├── Proxies HA weather / sensor / sun-moon state
+  ├── Proxies HA weather state
   └── Proxies the Immich album list
 
 [Browser (Chromium on Pi)]
@@ -55,7 +55,7 @@ The HA long-lived access token is injected server-side and never exposed in stat
   - A camera integration for your doorbell (e.g. Reolink, Frigate, Ring via HA)
   - A media player entity (e.g. Spotify, Sonos, Cast)
   - Sensor entities for your doorbell triggers (motion/person/button press)
-  - (Optional) Temperature sensor entities for the dashboard view, and a moon phase sensor
+  - (Optional) A Grafana dashboard reachable at a public URL (`specialViews.grafanaUrl`) for the temperature dashboard view
 
 ---
 
@@ -156,9 +156,7 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
     "cameraAutoHideSeconds": 30,                    // Auto-dismiss camera overlay after N seconds
 
-    "mediaPlayerEntity": "media_player.kitchen",    // Entity ID of your music player
-
-    "moonEntity": "sensor.moon"                     // Entity ID of your moon phase sensor (default: sensor.moon)
+    "mediaPlayerEntity": "media_player.kitchen"     // Entity ID of your music player
   },
 
   "display": {
@@ -168,18 +166,23 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
   "specialViews": {
     "intervalPhotos": 20,                     // Show a special view after this many photos
-    "dashboardDurationSeconds": 120,          // How long the dashboard view stays up
+    "dashboardDurationSeconds": 120,          // How long the Grafana dashboard view stays up
     "flightAwareDurationSeconds": 120,        // How long the flight tracker view stays up
     "flightAwareUrl": "http://192.168.10.71:8080/",  // URL loaded in the flight-tracker iframe
-    "sensorEntities": [                       // Temperature (or other) sensors shown as cards
-      { "entityId": "sensor.office_temperature", "label": "Office" },
-      { "entityId": "sensor.basement_temperature", "label": "Basement" }
-    ]
+    "grafanaUrl": "http://192.168.30.20:3001/.../public-dashboards/<token>"  // URL loaded in the Grafana iframe (a Grafana Public Dashboard link — see below)
   }
 }
 ```
 
-Special views rotate in a fixed order (flight tracker, then dashboard) every time `intervalPhotos` photos have been shown, and the slideshow resumes automatically once each view's duration elapses.
+Special views rotate in a fixed order (flight tracker, then Grafana dashboard) every time `intervalPhotos` photos have been shown, and the slideshow resumes automatically once each view's duration elapses.
+
+### Setting up the Grafana dashboard view
+
+`specialViews.grafanaUrl` is loaded directly in an iframe, the same way `flightAwareUrl` is — no server-side proxying, so it must be reachable and renderable directly from the display Pi's browser with no login:
+
+1. In Grafana, share the target dashboard as a **Public Dashboard** (Dashboard settings → Public dashboard) rather than exposing all of Grafana anonymously — this keeps everything else in Grafana behind normal auth.
+2. Grafana must have `GF_SECURITY_ALLOW_EMBEDDING=true` set, or it sends `X-Frame-Options: deny` and the iframe will render blank.
+3. If Grafana is only reachable through Home Assistant's Supervisor ingress, that route requires an authenticated HA browser session that this kiosk (Chromium `--incognito`, no persistent login) can't complete — Grafana needs a direct network path (its own exposed port) instead.
 
 ### Finding your Immich album ID
 
@@ -262,11 +265,12 @@ When doorbell triggers:
 
 Special views (rotate in every `intervalPhotos` photos):
 ┌─────────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────────┐
-│  Home                                                        │   │                                                             │
-│  [Office 71°] [Bathroom 68°] [DNA 70°] [Aiden 69°] ...        │   │                  [ FlightAware iframe ]                    │
-│  Sunrise 6:12 AM   Sunset 8:45 PM   Waxing Gibbous             │   │                                                             │
+│                                                             │   │                                                             │
+│               [ Grafana dashboard iframe ]                 │   │                  [ FlightAware iframe ]                    │
+│   (temps, history, min/max, alerts, sunrise/sunset/moon)    │   │                                                             │
+│                                                             │   │                                                             │
 └─────────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────────┘
-        Room dashboard                                                     Flight tracker
+        Temperature dashboard                                              Flight tracker
 ```
 
 ---
@@ -292,9 +296,10 @@ Special views (rotate in every `intervalPhotos` photos):
 - Test by toggling the entity in HA Developer Tools → States
 - Check the camera entity ID is correct — the server logs will show errors if the proxy call fails
 
-**Dashboard sensor cards show `--` or "No sensors configured"**
-- Make sure `specialViews.sensorEntities` is populated with valid entity IDs
-- An individual card showing `--` means that entity's state was `unavailable`/`unknown` or the HA fetch failed for it
+**Grafana dashboard shows blank**
+- Verify `specialViews.grafanaUrl` is reachable from the display Pi's browser (it's loaded directly in an iframe, not proxied): open it directly in a browser tab first
+- Check that the dashboard is still enabled as a Public Dashboard in Grafana (Dashboard settings → Public dashboard) and that `GF_SECURITY_ALLOW_EMBEDDING=true` is still set — Grafana will otherwise send `X-Frame-Options: deny` and the iframe renders blank with no visible error
+- Check the browser console on the Pi for a frame-ancestors/CSP or mixed-content error
 
 **Flight tracker shows blank**
 - Verify `specialViews.flightAwareUrl` is reachable from the display Pi's browser (it's loaded directly in an iframe, not proxied)
@@ -309,7 +314,7 @@ Special views (rotate in every `intervalPhotos` photos):
 **Display frozen (clock stuck, nothing updating)**
 - Usually Chromium hung or was OOM-killed by a memory leak, not a code issue — `ssh` into the Pi; if that also doesn't respond the whole Pi is wedged and needs a power cycle
 - If SSH works, check `ps aux | grep chromium` and `dmesg -T | tail -50 | grep -i oom`
-- `scripts/pi-kiosk-setup.sh` installs a daily Chromium restart plus an overnight restart via the screen-off/on cron jobs specifically to bound how long a leak can run before it's cleared; if freezes still happen mid-day, shorten the restart interval or investigate what's leaking (the FlightAware iframe, which runs an arbitrary external page, is the prime suspect)
+- `scripts/pi-kiosk-setup.sh` installs a daily Chromium restart plus an overnight restart via the screen-off/on cron jobs specifically to bound how long a leak can run before it's cleared; if freezes still happen mid-day, shorten the restart interval or investigate what's leaking (the FlightAware and Grafana iframes, which each run an arbitrary external page, are the prime suspects)
 - The overlay appears when the player state is `playing` and disappears on `paused`/`idle`
 
 ---

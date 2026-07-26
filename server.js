@@ -54,14 +54,12 @@ function loadConfig() {
   config.display = config.display || {};
   config.display.clockFormat24h = config.display.clockFormat24h !== undefined ? config.display.clockFormat24h : false;
   config.display.temperatureUnit = config.display.temperatureUnit || 'F';
-  config.homeAssistant.moonEntity = config.homeAssistant.moonEntity || 'sensor.moon';
-
   config.specialViews = config.specialViews || {};
   config.specialViews.intervalPhotos             = config.specialViews.intervalPhotos             || 20;
   config.specialViews.dashboardDurationSeconds   = config.specialViews.dashboardDurationSeconds   || 120;
   config.specialViews.flightAwareDurationSeconds = config.specialViews.flightAwareDurationSeconds || 120;
   config.specialViews.flightAwareUrl             = config.specialViews.flightAwareUrl             || 'http://192.168.10.71:8080/';
-  config.specialViews.sensorEntities             = config.specialViews.sensorEntities             || [];
+  config.specialViews.grafanaUrl                 = config.specialViews.grafanaUrl                 || '';
 
   return config;
 }
@@ -121,7 +119,7 @@ app.get('/api/config', (req, res) => {
       dashboardDurationSeconds:   config.specialViews.dashboardDurationSeconds,
       flightAwareDurationSeconds: config.specialViews.flightAwareDurationSeconds,
       flightAwareUrl:             config.specialViews.flightAwareUrl,
-      sensorEntities:             config.specialViews.sensorEntities,
+      grafanaUrl:                 config.specialViews.grafanaUrl,
     },
   });
 });
@@ -151,127 +149,6 @@ app.get('/api/weather', async (req, res) => {
     console.error('Weather fetch error:', err.message);
     res.status(502).json({ error: 'Failed to fetch weather from Home Assistant' });
   }
-});
-
-// ---------------------------------------------------------------------------
-// GET /api/sensor-states — proxied HA sensor states for the dashboard
-// ---------------------------------------------------------------------------
-
-app.get('/api/sensor-states', async (req, res) => {
-  const entities = config.specialViews.sensorEntities || [];
-  if (entities.length === 0) return res.json([]);
-
-  const haBase  = config.homeAssistant.baseUrl;
-  const haToken = config.homeAssistant.token;
-
-  const fetches = entities.map(async ({ entityId, label }) => {
-    const url = `${haBase}/api/states/${entityId}`;
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${haToken}` },
-        timeout: 8000,
-      });
-      if (!response.ok) {
-        return { entityId, label, state: null, unit: null, error: `HA ${response.status}` };
-      }
-      const data = await response.json();
-      return {
-        entityId,
-        label,
-        state: data.state,
-        unit: (data.attributes && data.attributes.unit_of_measurement) || null,
-      };
-    } catch (err) {
-      console.warn(`Sensor fetch failed for ${entityId}:`, err.message);
-      return { entityId, label, state: null, unit: null, error: err.message };
-    }
-  });
-
-  try {
-    const results = await Promise.all(fetches);
-    res.json(results);
-  } catch (err) {
-    console.error('sensor-states parallel fetch error:', err.message);
-    res.status(502).json({ error: 'Failed to fetch sensor states' });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// GET /api/sun-moon — sunrise, sunset, and moon phase from HA
-// ---------------------------------------------------------------------------
-
-app.get('/api/sun-moon', async (req, res) => {
-  const haBase  = config.homeAssistant.baseUrl;
-  const haToken = config.homeAssistant.token;
-
-  // Helper: convert snake_case moon phase to Title Case
-  function formatMoonPhase(state) {
-    return state.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-  }
-
-  // Fetch sunrise, sunset, and moon entity in parallel.
-  // Newer HA versions expose rising/setting as separate sensor entities rather
-  // than attributes of sun.sun, so we fetch all three independently.
-  const [riseResult, setResult, moonResult] = await Promise.allSettled([
-    fetch(`${haBase}/api/states/sensor.sun_next_rising`, {
-      headers: { Authorization: `Bearer ${haToken}` },
-      timeout: 8000,
-    }),
-    fetch(`${haBase}/api/states/sensor.sun_next_setting`, {
-      headers: { Authorization: `Bearer ${haToken}` },
-      timeout: 8000,
-    }),
-    fetch(`${haBase}/api/states/${config.homeAssistant.moonEntity}`, {
-      headers: { Authorization: `Bearer ${haToken}` },
-      timeout: 8000,
-    }),
-  ]);
-
-  // Return raw ISO strings — the browser formats them in its own local timezone
-  let sunriseIso = null;
-  let sunsetIso  = null;
-  let moonPhase  = null;
-
-  if (riseResult.status === 'fulfilled' && riseResult.value.ok) {
-    try {
-      const data = await riseResult.value.json();
-      if (data.state && data.state !== 'unavailable' && data.state !== 'unknown') {
-        sunriseIso = data.state;
-      }
-    } catch (err) {
-      console.warn('sun_next_rising parse error:', err.message);
-    }
-  } else {
-    console.warn('sensor.sun_next_rising fetch failed');
-  }
-
-  if (setResult.status === 'fulfilled' && setResult.value.ok) {
-    try {
-      const data = await setResult.value.json();
-      if (data.state && data.state !== 'unavailable' && data.state !== 'unknown') {
-        sunsetIso = data.state;
-      }
-    } catch (err) {
-      console.warn('sun_next_setting parse error:', err.message);
-    }
-  } else {
-    console.warn('sensor.sun_next_setting fetch failed');
-  }
-
-  if (moonResult.status === 'fulfilled' && moonResult.value.ok) {
-    try {
-      const moonData = await moonResult.value.json();
-      if (moonData.state && moonData.state !== 'unavailable' && moonData.state !== 'unknown') {
-        moonPhase = formatMoonPhase(moonData.state);
-      }
-    } catch (err) {
-      console.warn('Moon entity parse error:', err.message);
-    }
-  } else {
-    console.warn('Moon entity fetch failed — moon phase will not be shown');
-  }
-
-  res.json({ sunriseIso, sunsetIso, moonPhase });
 });
 
 // ---------------------------------------------------------------------------

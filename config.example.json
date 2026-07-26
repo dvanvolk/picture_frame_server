@@ -18,8 +18,7 @@
       "binary_sensor.reolink_front_door_person"
     ],
     "cameraAutoHideSeconds": 30,
-      "mediaPlayerEntity": "media_player.kitchen_speaker",
-      "moonEntity": "sensor.moon_phase"
+    "mediaPlayerEntity": "media_player.kitchen_speaker"
   },
   "display": {
     "clockFormat24h": false,
@@ -30,14 +29,6 @@
     "dashboardDurationSeconds": 120,
     "flightAwareDurationSeconds": 120,
     "flightAwareUrl": "http://192.168.10.71:8080/",
-    "sensorEntities": [
-      { "entityId": "sensor.office_temperature", "label": "Office" },
-      { "entityId": "sensor.main_bath_temperature", "label": "First Bathroom" },
-      { "entityId": "sensor.dna_room_temperature",     "label": "DNA Bedroom" },
-      { "entityId": "sensor.aiden_room_temperature",     "label": "Aiden Bedroom" },
-      { "entityId": "sensor.elizabeth_room_temperature",     "label": "Elizabeth Bedroom" },
-      { "entityId": "sensor.basement_temperature",      "label": "Basement" },
-      { "entityId": "sensor.guest_bedroom_temperature",  "label": "Guest Bedroom" }
-    ]
+    "grafanaUrl": "http://192.168.30.20:3001/api/hassio_ingress/H1uGTqFN96omOUqeNqkgz9tGNN68pmqexuypEGPIQOc/public-dashboards/d01d0013ca344c639fbf1ac139259c91"
   }
 }

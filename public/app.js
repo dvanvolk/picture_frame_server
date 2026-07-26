@@ -250,17 +250,17 @@ function resetCameraHideTimer() {
 document.getElementById('camera-dismiss').addEventListener('click', hideCameraOverlay);
 
 // ============================================================
-// Special views — Dashboard and FlightAware
+// Special views — Grafana and FlightAware
 // ============================================================
 
 let photosSinceSpecialView = 0;
 let specialViewQueueIndex  = 0;
-const specialViewQueue     = ['flightaware', 'dashboard'];
+const specialViewQueue     = ['flightaware', 'grafana'];
 let specialViewHideTimer   = null;
 
 function specialViewActive() {
   return (
-    !document.getElementById('dashboard-overlay').classList.contains('hidden') ||
+    !document.getElementById('grafana-overlay').classList.contains('hidden') ||
     !document.getElementById('flightaware-overlay').classList.contains('hidden')
   );
 }
@@ -268,45 +268,14 @@ function specialViewActive() {
 function showNextSpecialView() {
   const viewName = specialViewQueue[specialViewQueueIndex % specialViewQueue.length];
   specialViewQueueIndex++;
-  if (viewName === 'dashboard') showDashboard();
+  if (viewName === 'grafana') showGrafana();
   else if (viewName === 'flightaware') showFlightAware();
 }
 
-async function showDashboard() {
-  const overlay   = document.getElementById('dashboard-overlay');
-  const container = document.getElementById('sensor-cards');
-  container.innerHTML = '';
-  overlay.classList.remove('hidden');
-
-  // Fetch sensors and sun/moon data in parallel
-  const [sensors, sunMoon] = await Promise.all([
-    fetch('/api/sensor-states').then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
-    fetch('/api/sun-moon').then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; }),
-  ]);
-
-  // Render temperature cards
-  if (sensors.length === 0) {
-    container.innerHTML = '<div class="sensor-card"><div class="sensor-card-label">No sensors configured</div></div>';
-  } else {
-    container.innerHTML = sensors.map(function(s) {
-      const parsedNum = parseFloat(s.state);
-      const hasValue  = s.state !== null && s.state !== 'unavailable' && s.state !== 'unknown';
-      const valueText = (hasValue && !isNaN(parsedNum)) ? Math.round(parsedNum) : (hasValue ? s.state : '--');
-      const unitText  = (hasValue && s.unit) ? s.unit : '';
-      const errClass  = hasValue ? '' : ' error';
-      return '<div class="sensor-card' + errClass + '">' +
-        '<div class="sensor-card-label">' + escapeHtml(s.label || s.entityId) + '</div>' +
-        '<div class="sensor-card-value">' + valueText + '</div>' +
-        '<div class="sensor-card-unit">'  + escapeHtml(unitText) + '</div>' +
-        '</div>';
-    }).join('');
-  }
-
-  // Render sun/moon bar — format ISO timestamps in the browser's local timezone
-  const timeOpts = { hour: 'numeric', minute: '2-digit', hour12: !CFG.display.clockFormat24h };
-  document.getElementById('sun-rise').textContent   = sunMoon.sunriseIso ? new Date(sunMoon.sunriseIso).toLocaleTimeString([], timeOpts) : '--';
-  document.getElementById('sun-set').textContent    = sunMoon.sunsetIso  ? new Date(sunMoon.sunsetIso).toLocaleTimeString([], timeOpts)  : '--';
-  document.getElementById('moon-phase').textContent = sunMoon.moonPhase || '';
+function showGrafana() {
+  const frame = document.getElementById('grafana-frame');
+  frame.src   = CFG.specialViews.grafanaUrl || '';
+  document.getElementById('grafana-overlay').classList.remove('hidden');
 
   clearTimeout(specialViewHideTimer);
   specialViewHideTimer = setTimeout(hideSpecialView,
@@ -326,17 +295,13 @@ function showFlightAware() {
 function hideSpecialView() {
   clearTimeout(specialViewHideTimer);
   specialViewHideTimer = null;
-  document.getElementById('dashboard-overlay').classList.add('hidden');
-  const frame = document.getElementById('flightaware-frame');
-  frame.src   = ''; // stop iframe running in background
+  const grafanaFrame = document.getElementById('grafana-frame');
+  grafanaFrame.src    = ''; // stop iframe running in background
+  document.getElementById('grafana-overlay').classList.add('hidden');
+  const flightawareFrame = document.getElementById('flightaware-frame');
+  flightawareFrame.src    = ''; // stop iframe running in background
   document.getElementById('flightaware-overlay').classList.add('hidden');
   photosSinceSpecialView = 0;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ============================================================

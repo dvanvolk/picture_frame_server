@@ -47,15 +47,9 @@
     </div>
   </div>
 
-  <!-- Dashboard overlay: room temperatures, sunrise/sunset, moon phase -->
-  <div id="dashboard-overlay" class="hidden">
-    <div class="dashboard-title">Home</div>
-    <div id="sensor-cards"></div>
-    <div id="sun-moon-bar">
-      <span id="sun-rise"></span>
-      <span id="sun-set"></span>
-      <span id="moon-phase"></span>
-    </div>
+  <!-- Grafana overlay: temperature dashboard iframe (temps, history, min/max, alerts, sun/moon) -->
+  <div id="grafana-overlay" class="hidden">
+    <iframe id="grafana-frame" src="" title="Temperature Dashboard" allowfullscreen></iframe>
   </div>
 
   <!-- FlightAware overlay: live flight tracking iframe -->
