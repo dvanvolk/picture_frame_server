@@ -31,12 +31,13 @@
     "flightAwareDurationSeconds": 120,
     "flightAwareUrl": "http://192.168.10.71:8080/",
     "sensorEntities": [
-      { "entityId": "sensor.office_aqara_temp_temperature", "label": "Office" },
-      { "entityId": "sensor.down_bath_aqara_temperature_sensor_temperature", "label": "Bathroom" },
-      { "entityId": "sensor.temperature_dna_room",     "label": "DNA Bedroom" },
-      { "entityId": "sensor.temperature_aiden_room",     "label": "Aiden Bedroom" },
-      { "entityId": "sensor.temperature_elizabeth_room",     "label": "Elizabeth Bedroom" },
-      { "entityId": "sensor.basement_aqara_temperature_sensor_temperature",      "label": "Basement" }
+      { "entityId": "sensor.office_temperature", "label": "Office" },
+      { "entityId": "sensor.main_bath_temperature", "label": "First Bathroom" },
+      { "entityId": "sensor.dna_room_temperature",     "label": "DNA Bedroom" },
+      { "entityId": "sensor.aiden_room_temperature",     "label": "Aiden Bedroom" },
+      { "entityId": "sensor.elizabeth_room_temperature",     "label": "Elizabeth Bedroom" },
+      { "entityId": "sensor.basement_temperature",      "label": "Basement" },
+      { "entityId": "sensor.guest_bedroom_temperature",  "label": "Guest Bedroom" }
     ]
   }
 }
