@@ -12,6 +12,7 @@
     "baseUrl": "http://homeassistant.local:8123",
     "token": "your-long-lived-access-token",
     "weatherEntity": "weather.forecast_home",
+    "temperatureEntity": "sensor.openweathermap_temperature",
     "cameraEntity": "camera.reolink_front_door",
     "cameraTriggerEntities": [
       "binary_sensor.reolink_front_door_visitor",

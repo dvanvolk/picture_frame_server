@@ -147,6 +147,11 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
     "weatherEntity": "weather.home",                // Entity ID of your weather integration
 
+    "temperatureEntity": "sensor.openweathermap_temperature", // Optional: sensor entity for
+                                                     // decimal-precision temperature, since some
+                                                     // weather entities (e.g. OpenWeatherMap) round
+                                                     // their temperature attribute to a whole degree
+
     "cameraEntity": "camera.reolink_front_door",    // Entity ID of the doorbell camera
 
     "cameraTriggerEntities": [                      // One or more entities that trigger the

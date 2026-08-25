@@ -130,18 +130,35 @@ app.get('/api/config', (req, res) => {
 
 app.get('/api/weather', async (req, res) => {
   const url = `${config.homeAssistant.baseUrl}/api/states/${config.homeAssistant.weatherEntity}`;
+  const headers = { Authorization: `Bearer ${config.homeAssistant.token}` };
   try {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${config.homeAssistant.token}` },
-      timeout: 8000,
-    });
+    const response = await fetch(url, { headers, timeout: 8000 });
     if (!response.ok) {
       return res.status(502).json({ error: `HA returned ${response.status}` });
     }
     const data = await response.json();
+    let temperature = (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null;
+
+    // Some weather integrations (e.g. OpenWeatherMap) round the weather
+    // entity's temperature attribute to a whole degree. If configured, pull
+    // the precise reading from a separate sensor entity instead.
+    const tempEntity = config.homeAssistant.temperatureEntity;
+    if (tempEntity) {
+      try {
+        const tempRes = await fetch(`${config.homeAssistant.baseUrl}/api/states/${tempEntity}`, { headers, timeout: 8000 });
+        if (tempRes.ok) {
+          const tempData = await tempRes.json();
+          const parsed = parseFloat(tempData.state);
+          if (!Number.isNaN(parsed)) temperature = parsed;
+        }
+      } catch (err) {
+        console.warn('Temperature sensor fetch failed, using weather entity value:', err.message);
+      }
+    }
+
     res.json({
       condition:   data.state,
-      temperature: (data.attributes && data.attributes.temperature !== undefined) ? data.attributes.temperature : null,
+      temperature,
       unit:        config.display.temperatureUnit === 'F' ? '°F' : '°C',
       humidity:    (data.attributes && data.attributes.humidity !== undefined) ? data.attributes.humidity : null,
     });
