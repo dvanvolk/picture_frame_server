@@ -8,7 +8,7 @@ ExecStart=/usr/bin/node /opt/pictureframe/server.js
 WorkingDirectory=/opt/pictureframe
 Restart=always
 RestartSec=5
-User=pi
+# No User= here, so it runs as root by default. install.sh adds User= for SERVICE_USER.
 Environment=NODE_ENV=production
 
 [Install]
