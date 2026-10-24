@@ -20,6 +20,8 @@
     ],
     "cameraAutoHideSeconds": 30,
     "mediaPlayerEntity": "media_player.kitchen_speaker",
+    "flightAwareTriggerEntities": ["input_button.show_flightaware"],
+    "temperatureTriggerEntities": ["input_button.show_temps"],
     "temperatureSensors": [
       { "entity": "sensor.basement_temperature", "label": "Basement" },
       { "entity": "sensor.main_bath_temperature", "label": "Main Bath" },
@@ -36,7 +38,6 @@
     "temperatureUnit": "F"
   },
   "specialViews": {
-    "intervalPhotos": 20,
     "temperatureDurationSeconds": 120,
     "temperatureCoolBelow": 55,
     "temperatureWarmAtOrAbove": 78,

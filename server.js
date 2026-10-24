@@ -55,7 +55,8 @@ function loadConfig() {
   config.display.clockFormat24h = config.display.clockFormat24h !== undefined ? config.display.clockFormat24h : false;
   config.display.temperatureUnit = config.display.temperatureUnit || 'F';
   config.specialViews = config.specialViews || {};
-  config.specialViews.intervalPhotos             = config.specialViews.intervalPhotos             || 20;
+  config.homeAssistant.flightAwareTriggerEntities = config.homeAssistant.flightAwareTriggerEntities || [];
+  config.homeAssistant.temperatureTriggerEntities  = config.homeAssistant.temperatureTriggerEntities  || [];
   config.specialViews.dashboardDurationSeconds   = config.specialViews.dashboardDurationSeconds   || 120;
   config.specialViews.flightAwareDurationSeconds = config.specialViews.flightAwareDurationSeconds || 120;
   config.specialViews.flightAwareUrl             = config.specialViews.flightAwareUrl             || 'http://192.168.10.71:8080/';
@@ -113,6 +114,11 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
+// Standalone temperature graph page (viewable from any computer on the LAN)
+app.get('/temps', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'temps.html'));
+});
+
 // ---------------------------------------------------------------------------
 // GET /api/config — non-secret config for the frontend
 // ---------------------------------------------------------------------------
@@ -133,10 +139,11 @@ app.get('/api/config', (req, res) => {
       cameraAutoHideSeconds: config.homeAssistant.cameraAutoHideSeconds,
       mediaPlayerEntity: config.homeAssistant.mediaPlayerEntity,
       temperatureSensors: config.homeAssistant.temperatureSensors,
+      flightAwareTriggerEntities: config.homeAssistant.flightAwareTriggerEntities,
+      temperatureTriggerEntities: config.homeAssistant.temperatureTriggerEntities,
     },
     display: config.display,
     specialViews: {
-      intervalPhotos:             config.specialViews.intervalPhotos,
       temperatureDurationSeconds: config.specialViews.temperatureDurationSeconds,
       temperatureCoolBelow:       config.specialViews.temperatureCoolBelow,
       temperatureWarmAtOrAbove:   config.specialViews.temperatureWarmAtOrAbove,

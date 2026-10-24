@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Temperatures</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="standalone">
+
+  <!-- Same temperature markup as index.html; shared rendering lives in temps.js -->
+  <div id="temps-overlay">
+    <div id="temps-header">
+      <div id="temps-title">Home Temperatures</div>
+      <div id="temps-astro"></div>
+    </div>
+    <div id="temps-tiles"></div>
+    <div id="temps-lower">
+      <div id="temps-chart-wrap">
+        <div class="temps-section-label">Last 24 hours</div>
+        <svg id="temps-chart" preserveAspectRatio="none"></svg>
+        <div id="temps-legend"></div>
+      </div>
+      <div id="temps-stats-wrap">
+        <div class="temps-section-label">24h Min / Max / Avg</div>
+        <table id="temps-stats"></table>
+      </div>
+    </div>
+    <div id="temps-error"></div>
+  </div>
+
+  <script src="temps.js"></script>
+  <script>
+    (async function() {
+      await loadConfig();
+      loadTemps();
+      setInterval(loadTemps, 60 * 1000);
+      window.addEventListener('resize', function() { if (tempsData) renderTemps(tempsData); });
+    })();
+  </script>
+</body>
+</html>

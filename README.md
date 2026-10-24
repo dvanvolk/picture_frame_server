@@ -9,8 +9,8 @@ A full-screen kitchen display for a Raspberry Pi. Cycles through photos from an 
 - **Photo slideshow** — pulls images from an Immich shared album, shuffles and cycles continuously
 - **Large clock** — 96px font, readable from across the room
 - **Weather** — current temperature/condition from a Home Assistant weather entity (updated every 5 minutes), plus today's forecast high (fetched over the HA WebSocket every 30 minutes)
-- **Temperature view** — every N photos, shows live room temperatures, a 24-hour history graph, min/max/avg, threshold colors, and sunrise/sunset/moon, drawn natively from Home Assistant data (no Grafana)
-- **Flight tracker** — every N photos, shows an embedded FlightAware (or similar) live view in an iframe
+- **Temperature view** — shown on demand (Home Assistant button / physical button) and also available as a standalone page at `/temps` for any computer; shows live room temperatures, a 24-hour history graph, min/max/avg, threshold colors, and sunrise/sunset/moon, drawn natively from Home Assistant data (no Grafana)
+- **Flight tracker** — shown on demand by a Home Assistant button/entity; shows an embedded FlightAware (or similar) live view in an iframe
 - **Doorbell camera overlay** — triggered by any Home Assistant entity (person detection, button press, etc.); shows a refreshing snapshot from your Reolink or other HA-connected camera
 - **Music overlay** — shows song title and artist when a Home Assistant media player is playing
 - **Resilient** — reconnects to HA WebSocket automatically, retries Immich on failure, keeps showing last known weather if HA is briefly unreachable
@@ -194,6 +194,13 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 
     "mediaPlayerEntity": "media_player.kitchen",    // Entity ID of your music player
 
+    "flightAwareTriggerEntities": [                 // Entities that pop up the flight tracker when they
+      "input_button.show_flightaware"               // change state (button press, binary sensor -> "on", etc.)
+    ],
+    "temperatureTriggerEntities": [                 // Same, for the temperature view. A physical button
+      "input_button.show_temps"                     // wired into HA just needs its entity ID listed here
+    ],
+
     "temperatureSensors": [                         // Optional: rooms shown in the temperature view
       { "entity": "sensor.basement_temperature", "label": "Basement" },
       { "entity": "sensor.office_temperature",   "label": "Office" }
@@ -206,7 +213,6 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
   },
 
   "specialViews": {
-    "intervalPhotos": 20,                     // Show a special view after this many photos
     "temperatureDurationSeconds": 120,        // How long the temperature view stays up
     "temperatureCoolBelow": 55,               // Tile color: blue below this (display unit)
     "temperatureWarmAtOrAbove": 78,           // Tile color: red at or above this, green in between
@@ -216,7 +222,9 @@ All configuration lives in `config.json`. Copy `config.example.json` as a starti
 }
 ```
 
-Special views rotate in a fixed order (flight tracker, then temperatures) every time `intervalPhotos` photos have been shown, and the slideshow resumes automatically once each view's duration elapses.
+Special views are shown on demand: when any entity in `flightAwareTriggerEntities` / `temperatureTriggerEntities` changes state (and the new state isn't `off`/`unavailable`/`unknown`), the matching view appears over the slideshow and dismisses itself after its configured duration. Pressing again restarts the timer; pressing the other button switches views. Create an `input_button` helper in Home Assistant for each and add it to a dashboard; a future physical button only needs its HA entity ID added to the list.
+
+The temperature view is also served standalone at `http://<server>:3000/temps` (no Home Assistant token is exposed to that page; it refreshes every 60 seconds).
 
 ### The temperature view
 
@@ -303,7 +311,7 @@ When doorbell triggers:
 │             └──────────────────┘                            │
 └─────────────────────────────────────────────────────────────┘
 
-Special views (rotate in every `intervalPhotos` photos):
+Special views (shown on demand via trigger entities):
 ┌─────────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────────┐
 │                                                             │   │                                                             │
 │                [ Temperature view ]                         │   │                  [ FlightAware iframe ]                    │
