@@ -36,9 +36,9 @@ To exercise a change manually: run `npm start`, then open `http://localhost:3000
 
 **Config flow**: `config.json` → `loadConfig()` in `server.js` (validates + applies defaults) → split into secret (token, kept server-side) and non-secret (`/api/config` response, consumed as global `CFG` in `app.js`) halves.
 
-**Deployment**: `scripts/install.sh` installs the app to `/opt/pictureframe` on a Linux box as a systemd service (`scripts/picture-frame.service`); `scripts/pi-kiosk-setup.sh` configures the Raspberry Pi to autostart Chromium in kiosk mode pointing at the server. These are meant to be run on the target machines, not as part of a CI/dev workflow.
+**Deployment**: the live server is `Bluestreak`, a root-only Proxmox LXC at `192.168.10.73`. The app is a git clone in `/opt/pictureframe` run by the single systemd unit `picture-frame.service` (as root; `config.json` there is untracked). Update with `cd /opt/pictureframe && git pull && sudo systemctl restart picture-frame`, then reload the kiosk. `scripts/install.sh` installs/updates the unit (service user = `$SUDO_USER`, else root, or `SERVICE_USER=`); `scripts/pi-kiosk-setup.sh` configures the Raspberry Pi display (`192.168.10.74`) to autostart Chromium in kiosk mode pointing at `http://192.168.10.73:3000`. These are meant to be run on the target machines, not as part of a CI/dev workflow.
 
 ## Notes
 
-- The server is deployed as an **LXC container on Proxmox**; the Pi is display-only (Chromium kiosk mode). `README.md` documents this deployment target and the full current feature set — keep it in sync with `server.js`/`public/app.js` when adding or changing features.
-- Current git branch is `Add_Dashboard` (not yet merged to `main`).
+- The Pi is display-only (Chromium kiosk mode). `README.md` documents the deployment target (including the deploy location table) and the full current feature set — keep it in sync with `server.js`/`public/app.js` when adding or changing features.
+- Grafana/InfluxDB are no longer used anywhere; the temperature view reads Home Assistant history directly.

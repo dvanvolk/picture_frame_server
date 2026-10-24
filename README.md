@@ -27,6 +27,7 @@ The server runs as an **LXC container on Proxmox** on the home network. The disp
   ├── Serves the frontend               http://<server-ip>:3000
   ├── Proxies HA camera snapshots
   ├── Proxies HA weather state
+  ├── Builds the 24h temperature history/stats from HA (/api/temps)
   └── Proxies the Immich album list
 
 [Browser (Chromium on Pi)]
@@ -42,7 +43,7 @@ The HA long-lived access token is injected server-side and never exposed in stat
 ## Requirements
 
 ### Server
-- Runs in an **LXC container on Proxmox** (any Linux host with [Node.js](https://nodejs.org/) v18+ works too — the install script isn't Proxmox-specific)
+- Runs in an **LXC container on Proxmox** (`Bluestreak`, `192.168.10.73`, installed in `/opt/pictureframe`). Any Linux host with [Node.js](https://nodejs.org/) v18+ works too — the install script isn't Proxmox-specific, and runs the service as root unless you set `SERVICE_USER`.
 
 ### Raspberry Pi (display)
 - Raspberry Pi OS (Desktop) with Chromium installed
@@ -92,24 +93,52 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to verify ev
 
 ### 5. Deploy to your Proxmox LXC container (optional)
 
-Run the install script inside the LXC container to install as a systemd service:
+#### Where it runs
+
+| Item | Value |
+|---|---|
+| Server host | `Bluestreak` (Proxmox LXC container), `192.168.10.73`, root-only (no `pi` user) |
+| App location | `/opt/pictureframe`, a git clone of this repo |
+| Service | `picture-frame.service` (systemd), runs `node /opt/pictureframe/server.js` as root |
+| Config | `/opt/pictureframe/config.json` (not in git; contains the HA token and Immich API key) |
+| Port | `3000` |
+| Display | Raspberry Pi kiosk at `192.168.10.74`, Chromium pointing at `http://192.168.10.73:3000` |
+
+There must be exactly one picture-frame service on the host. `systemctl list-units --type=service | grep -i picture` should show only `picture-frame.service`, and `ss -ltnp | grep 3000` should show a single node process.
+
+#### First-time install
+
+Clone straight into the install directory and run the script from there (it skips the copy step when it is already in `/opt/pictureframe`):
 
 ```bash
+git clone https://github.com/dvanvolk/picture_frame_server.git /opt/pictureframe
+cd /opt/pictureframe
+cp config.example.json config.json && nano config.json   # fill in HA, Immich and sensor settings
 sudo bash scripts/install.sh
-```
-
-Then start it:
-
-```bash
 sudo systemctl start picture-frame
 sudo systemctl status picture-frame
 ```
+
+The service runs as the user who invoked `sudo` (or root if run directly). Override with `sudo SERVICE_USER=someuser bash scripts/install.sh`. The script exits if that user doesn't exist.
+
+#### Updating
+
+```bash
+cd /opt/pictureframe
+git pull
+npm install --omit=dev      # only needed if package.json changed
+sudo systemctl restart picture-frame
+```
+
+Then reload the kiosk (restart Chromium on the Pi, or wait for its scheduled restart). The browser keeps the old `app.js` until it reloads, so the old page can be paired with a newer server until then.
 
 View logs:
 
 ```bash
 journalctl -u picture-frame -f
 ```
+
+Quick health check: `http://192.168.10.73:3000/api/health` returns `{"status":"ok"}`, and `/api/temps` returns the temperature data.
 
 ### 6. Configure the Raspberry Pi
 
