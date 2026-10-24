@@ -19,7 +19,17 @@
       "binary_sensor.reolink_front_door_person"
     ],
     "cameraAutoHideSeconds": 30,
-    "mediaPlayerEntity": "media_player.kitchen_speaker"
+    "mediaPlayerEntity": "media_player.kitchen_speaker",
+    "temperatureSensors": [
+      { "entity": "sensor.basement_temperature", "label": "Basement" },
+      { "entity": "sensor.main_bath_temperature", "label": "Main Bath" },
+      { "entity": "sensor.office_temperature", "label": "Office" },
+      { "entity": "sensor.garage_temperature", "label": "Garage" },
+      { "entity": "sensor.guest_bedroom_temperature", "label": "Guest Bedroom" },
+      { "entity": "sensor.aiden_room_temperature", "label": "Aiden Room" },
+      { "entity": "sensor.dna_room_temperature", "label": "DNA Bedroom" },
+      { "entity": "sensor.elizabeth_room_temperature", "label": "Elizabeth Room" }
+    ]
   },
   "display": {
     "clockFormat24h": false,
@@ -27,9 +37,10 @@
   },
   "specialViews": {
     "intervalPhotos": 20,
-    "dashboardDurationSeconds": 120,
+    "temperatureDurationSeconds": 120,
+    "temperatureCoolBelow": 55,
+    "temperatureWarmAtOrAbove": 78,
     "flightAwareDurationSeconds": 120,
-    "flightAwareUrl": "http://192.168.10.71:8080/",
-    "grafanaUrl": "http://192.168.30.20:3001/api/hassio_ingress/H1uGTqFN96omOUqeNqkgz9tGNN68pmqexuypEGPIQOc/public-dashboards/d01d0013ca344c639fbf1ac139259c91"
+    "flightAwareUrl": "http://192.168.10.71:8080/"
   }
 }

@@ -248,28 +248,199 @@ html, body {
    Special views — Grafana and FlightAware
    ============================================================ */
 
-#grafana-overlay,
+#temps-overlay,
 #flightaware-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.92);
 }
 
-#grafana-overlay.hidden,
+#temps-overlay.hidden,
 #flightaware-overlay.hidden {
   display: none;
 }
 
-/* Grafana and FlightAware: z-index 30 — full immersive, covers info bar */
-#grafana-overlay,
+/* Temperatures and FlightAware: z-index 30 — full immersive, covers info bar */
+#temps-overlay,
 #flightaware-overlay {
   z-index: 30;
   display: flex;
 }
 
-#grafana-frame,
 #flightaware-frame {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* ============================================================
+   Temperature view
+   ============================================================ */
+
+#temps-overlay {
+  flex-direction: column;
+  gap: 2vh;
+  padding: 3vh 3vw;
+  background: #0b0d10;
+  color: #fff;
+}
+
+#temps-overlay.hidden {
+  display: none;
+}
+
+#temps-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+}
+
+#temps-title {
+  font-size: 4vh;
+  font-weight: 600;
+}
+
+#temps-astro {
+  font-size: 2.4vh;
+  font-weight: 300;
+  color: rgba(255,255,255,0.75);
+  text-align: right;
+}
+
+#temps-astro span + span {
+  margin-left: 2vw;
+}
+
+#temps-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5vh 1.2vw;
+}
+
+.temp-tile {
+  background: rgba(255,255,255,0.06);
+  border-left: 0.8vh solid var(--tile-color, #666);
+  border-radius: 1vh;
+  padding: 1.4vh 1.2vw;
+  min-width: 0;
+}
+
+.temp-tile-label {
+  font-size: 2.2vh;
+  font-weight: 400;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.temp-tile-value {
+  font-size: 6vh;
+  font-weight: 600;
+  color: var(--tile-color, #fff);
+}
+
+.temp-tile.offline {
+  --tile-color: #777;
+}
+
+.temp-tile.offline .temp-tile-value {
+  font-size: 3.4vh;
+  font-weight: 300;
+  padding: 1.3vh 0;
+}
+
+#temps-lower {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 2vw;
+}
+
+#temps-chart-wrap {
+  flex: 3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#temps-stats-wrap {
+  flex: 2;
+  min-width: 0;
+}
+
+.temps-section-label {
+  font-size: 2vh;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.8vh;
+}
+
+#temps-chart {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  background: rgba(255,255,255,0.04);
+  border-radius: 1vh;
+}
+
+#temps-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6vh 1.4vw;
+  margin-top: 1vh;
+  font-size: 1.9vh;
+  color: rgba(255,255,255,0.75);
+}
+
+.temps-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 1.6vh;
+  height: 1.6vh;
+  border-radius: 50%;
+  margin-right: 0.6vw;
+  background: var(--series-color);
+  vertical-align: -0.2vh;
+}
+
+#temps-stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 2.3vh;
+}
+
+#temps-stats th {
+  font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  text-align: right;
+  padding: 0.6vh 0.6vw;
+}
+
+#temps-stats th:first-child,
+#temps-stats td:first-child {
+  text-align: left;
+}
+
+#temps-stats td {
+  text-align: right;
+  padding: 0.9vh 0.6vw;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+#temps-stats td.muted {
+  color: rgba(255,255,255,0.35);
+}
+
+#temps-error {
+  display: none;
+  font-size: 2.2vh;
+  color: #ff9a9a;
+}
+
+#temps-error.visible {
+  display: block;
 }

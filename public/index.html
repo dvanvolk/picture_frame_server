@@ -47,9 +47,25 @@
     </div>
   </div>
 
-  <!-- Grafana overlay: temperature dashboard iframe (temps, history, min/max, alerts, sun/moon) -->
-  <div id="grafana-overlay" class="hidden">
-    <iframe id="grafana-frame" src="" title="Temperature Dashboard" allowfullscreen></iframe>
+  <!-- Temperature overlay: live room temps, 24h history, min/max/avg, sun/moon (filled by app.js from /api/temps) -->
+  <div id="temps-overlay" class="hidden">
+    <div id="temps-header">
+      <div id="temps-title">Home Temperatures</div>
+      <div id="temps-astro"></div>
+    </div>
+    <div id="temps-tiles"></div>
+    <div id="temps-lower">
+      <div id="temps-chart-wrap">
+        <div class="temps-section-label">Last 24 hours</div>
+        <svg id="temps-chart" preserveAspectRatio="none"></svg>
+        <div id="temps-legend"></div>
+      </div>
+      <div id="temps-stats-wrap">
+        <div class="temps-section-label">24h Min / Max / Avg</div>
+        <table id="temps-stats"></table>
+      </div>
+    </div>
+    <div id="temps-error"></div>
   </div>
 
   <!-- FlightAware overlay: live flight tracking iframe -->
