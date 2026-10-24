@@ -358,9 +358,22 @@ Special views (rotate in every `intervalPhotos` photos):
 - The overlay appears when the player state is `playing` and disappears on `paused`/`idle`
 
 **Display shows solid white after a reboot (server itself is fine — reachable from other machines)**
-- This is a Chromium GPU-process failure, not a config/network issue. Check `journalctl -u kiosk.service -b` (or the equivalent kiosk unit) for `MESA-LOADER: failed to retrieve device information` around Chromium's `--type=gpu-process` startup — this means the `v3d` kernel module (the 3D driver) never bound to `/dev/dri/renderD128`, even though the device node exists and permissions/groups (`video`/`render`) are correct.
-- Confirm with `lsmod | grep v3d` — if it's missing, `sudo modprobe v3d` should load it instantly with no errors (it's a boot-time race, not a missing/broken module), then `sudo systemctl restart kiosk.service` (or restart Chromium however your kiosk setup does it) to recover immediately.
-- To stop this recurring after future `apt upgrade` + reboot cycles (a kernel/firmware bump can make the race more likely), force `v3d` to load explicitly at boot instead of relying on auto-probe: `echo v3d | sudo tee /etc/modules-load.d/v3d.conf`, then reboot to confirm.
+- Seen on a Pi 3 set up with [pi-kiosk](https://github.com/geerlingguy/pi-kiosk), where a manual `sudo systemctl restart kiosk.service` fixed it. Its `kiosk.service` is a *system* service started at `graphical.target` with only `DISPLAY=:0`, so Chromium launches without the desktop session's environment (the journal shows `Could not parse server address` dbus errors and a `MESA-LOADER: failed to retrieve device information` line) and races the compositor. It is not a missing `v3d` module: `v3d` was loaded and waiting for the render node did not help.
+- Fix in `~/kiosk/kiosk.sh`: give Chromium the session environment, wait for the Wayland socket instead of a fixed `sleep`, and use native Wayland, no keyring, and software rendering:
+  ```bash
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+  export WAYLAND_DISPLAY=wayland-0
+
+  for i in $(seq 1 60); do
+    [ -S "$XDG_RUNTIME_DIR/wayland-0" ] && [ -S "$XDG_RUNTIME_DIR/bus" ] && break
+    sleep 1
+  done
+  sleep 5
+
+  /usr/bin/chromium --ozone-platform=wayland --password-store=basic --disable-gpu --noerrdialogs --disable-infobars --kiosk --app=$KIOSK_URL
+  ```
+  `--password-store=basic` stops the "set a keyring password" popup that appears once dbus works; `--disable-gpu` avoids the boot-time GPU init failure (fine for a photo slideshow). Reboot a few times to confirm, since this was a race.
 
 ---
 
